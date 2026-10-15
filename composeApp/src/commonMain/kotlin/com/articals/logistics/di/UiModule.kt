@@ -11,6 +11,8 @@ import com.articals.logistics.ui.screen.notifications.NotificationsViewModel
 import com.articals.logistics.ui.screen.orders.OrderDetailViewModel
 import com.articals.logistics.ui.screen.onboarding.OnboardingViewModel
 import com.articals.logistics.ui.screen.orders.OrdersViewModel
+import com.articals.logistics.ui.screen.pricing.CalculatorViewModel
+import com.articals.logistics.ui.screen.pricing.QuotesViewModel
 import com.articals.logistics.ui.screen.rider.RiderHomeViewModel
 import com.articals.logistics.ui.screen.rider.RiderJobViewModel
 import com.articals.logistics.ui.screen.workspace.CompanySetupViewModel
@@ -55,6 +57,15 @@ val uiModule: Module = module {
     viewModel { OrdersViewModel(orders = get()) }
     viewModel { OrderDetailViewModel(orders = get(), riders = get()) }
     viewModel { NotificationsViewModel(notifications = get()) }
+    viewModel {
+        CalculatorViewModel(
+            pricing = get(),
+            orders = get(),
+            customers = get(),
+            companies = get(),
+        )
+    }
+    viewModel { QuotesViewModel(pricing = get()) }
 
     // --- The rider's own screens -------------------------------------------
     viewModel { RiderHomeViewModel(orders = get(), riders = get()) }

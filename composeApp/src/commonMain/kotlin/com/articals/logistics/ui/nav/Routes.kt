@@ -30,7 +30,7 @@ object Routes {
     const val Orders = "orders"
     const val OrderDetail = "orders/{orderId}"
     const val NewOrder = "orders/new"
-    const val Calculator = "calculator"
+    const val Calculator = "calculator?quoteId={quoteId}"
     const val Quotes = "quotes"
     const val Customers = "customers"
     const val Riders = "riders"
@@ -67,11 +67,16 @@ object Routes {
 
     fun onboarding(tenantId: String) = "onboarding/$tenantId"
 
+    /** The calculator, optionally opening with a saved quote already filled in. */
+    fun calculator(quoteId: String? = null) =
+        if (quoteId == null) "calculator" else "calculator?quoteId=$quoteId"
+
     fun adminCompany(tenantId: String) = "admin/companies/$tenantId"
 
     fun adminPayments(tenantId: String) = "admin/companies/$tenantId/payments"
 
     /** The argument names used by the graph, so builders and patterns cannot drift. */
+    const val ArgQuoteId = "quoteId"
     const val ArgOrderId = "orderId"
     const val ArgTenantId = "tenantId"
 

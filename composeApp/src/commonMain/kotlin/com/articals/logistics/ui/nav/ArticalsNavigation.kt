@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Notifications
@@ -35,7 +36,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.NavType
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.articals.logistics.core.AppConfig
 import com.articals.logistics.core.Roles
 import com.articals.logistics.data.dto.AppNotificationDto
@@ -53,6 +56,8 @@ import com.articals.logistics.ui.screen.notifications.NotificationsScreen
 import com.articals.logistics.ui.screen.onboarding.OnboardingScreen
 import com.articals.logistics.ui.screen.orders.OrderDetailScreen
 import com.articals.logistics.ui.screen.orders.OrdersScreen
+import com.articals.logistics.ui.screen.pricing.CalculatorScreen
+import com.articals.logistics.ui.screen.pricing.QuotesScreen
 import com.articals.logistics.ui.screen.rider.RiderHomeScreen
 import com.articals.logistics.ui.screen.rider.RiderJobScreen
 import com.articals.logistics.ui.screen.settings.SettingsScreen
@@ -216,7 +221,7 @@ fun ArticalsNavigation(
                                 timeZoneId = state.zoneId,
                                 currency = state.currency,
                                 onOpenOrder = { orderId -> navController.navigate(Routes.order(orderId)) },
-                                onNewOrder = null,
+                                onNewOrder = { navController.navigate(Routes.calculator()) },
                             )
                         }
                     }
@@ -238,6 +243,51 @@ fun ArticalsNavigation(
                                 permissions = state.permissions,
                                 isDemoMode = config.isDemo,
                                 isAssignedRider = false,
+                            )
+                        }
+                    }
+                }
+
+                composable(
+                    route = Routes.Calculator,
+                    arguments = listOf(
+                        navArgument(Routes.ArgQuoteId) {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        },
+                    ),
+                ) { entry ->
+                    Guarded(navController = navController, state = state, route = Routes.Calculator) {
+                        val tenantId = state.activeTenantId
+                        if (tenantId == null) {
+                            NoAccessScreen(onBack = { navController.popBackStack() })
+                        } else {
+                            val quoteId = entry.arguments?.getString(Routes.ArgQuoteId)
+                            CalculatorScreen(
+                                tenantId = tenantId,
+                                currency = state.currency,
+                                timeZoneId = state.zoneId,
+                                permissions = state.permissions,
+                                onOpenOrder = { orderId -> navController.navigate(Routes.order(orderId)) },
+                                onOpenQuotes = { navController.navigate(Routes.Quotes) },
+                                pendingQuoteId = quoteId,
+                            )
+                        }
+                    }
+                }
+
+                composable(Routes.Quotes) {
+                    Guarded(navController = navController, state = state, route = Routes.Quotes) {
+                        val tenantId = state.activeTenantId
+                        if (tenantId == null) {
+                            NoAccessScreen(onBack = { navController.popBackStack() })
+                        } else {
+                            QuotesScreen(
+                                tenantId = tenantId,
+                                currency = state.currency,
+                                timeZoneId = state.zoneId,
+                                onReuse = { quoteId -> navController.navigate(Routes.calculator(quoteId)) },
                             )
                         }
                     }
@@ -465,13 +515,16 @@ private fun ShellBottomBar(
         listOf(
             Tab(Routes.Dashboard, ArticalsStrings.Shell.tabToday, Icons.Default.Today),
             Tab(Routes.Orders, ArticalsStrings.Shell.tabOrders, Icons.Default.LocalShipping),
+            Tab(Routes.calculator(), ArticalsStrings.Shell.tabPrice, Icons.Default.Calculate),
             Tab(Routes.Settings, ArticalsStrings.Shell.tabMore, Icons.Default.MoreHoriz),
         )
     }
 
     NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
         tabs.forEach { tab ->
-            val selected = currentRoute?.substringBefore("/{") == tab.route
+            val selected = currentRoute
+                ?.substringBefore('?')
+                ?.substringBefore("/{") == tab.route
             NavigationBarItem(
                 selected = selected,
                 onClick = {

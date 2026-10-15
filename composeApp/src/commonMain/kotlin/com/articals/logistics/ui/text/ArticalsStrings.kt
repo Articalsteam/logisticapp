@@ -240,12 +240,30 @@ object ArticalsStrings {
         const val overridePrice = "Set a different price"
         const val overrideBelowMinimum = "This is below your minimum charge"
         const val overrideNeedsPermission = "Your role cannot override a price."
+        const val needsQuotePermission = "Your role cannot price deliveries."
+        const val createNeedsPermission = "Your role cannot create a delivery."
+        const val overrideNeedsPermissionExplain =
+            "Only the owner and the manager can set a price that is not the one your rates produce. " +
+                "Ask them to do it, or price this delivery with the rates."
         const val targetMargin = "Target margin"
         const val targetProfit = "Target profit"
         const val noMatchingBand = "This distance does not match any of your bands."
         const val zoneRuleMissing = "There is no rate for this area pair yet."
         const val distanceRequired = "A distance is needed before this can be priced."
         const val manualDistanceReview = "This distance was entered by hand; check it before you rely on it."
+        const val zeroCustomerCharge = "This price charges the customer nothing."
+        const val priceBelowCost = "This price is below what the delivery costs you."
+        const val noCustomer = "No customer record"
+        const val noCustomerExplain =
+            "The delivery is recorded with the name and number above, without creating a customer."
+        const val existingCustomer = "A customer you already have"
+        const val newCustomer = "Add this customer"
+        const val quoteHistoryTitle = "Saved quotes"
+        const val quoteHistoryBody =
+            "Every quote you saved, newest first. Open one to see what it was or to price something similar."
+        const val useThisAgain = "Use these details again"
+        const val blockedHint =
+            "Acknowledging every warning is what lets this price be used. It is recorded on the quote."
 
         fun savedAt(whenText: String) = "Saved $whenText"
         fun versionChanged(from: Int, to: Int) = "Your rates changed (version $from to $to). Recalculate before quoting."
@@ -304,6 +322,8 @@ object ArticalsStrings {
         const val actualExtraCosts = "Extra costs, final"
         const val recordActuals = "Record final amounts"
         const val actualsRecorded = "Final amounts recorded"
+        const val orderCreated = "The delivery is created and appears in the list"
+        const val createdFromQuote = "Created from a saved quote"
         const val actualsExplain =
             "Record what really happened. The estimate stays on the delivery so the difference " +
                 "between quoted and actual profit stays visible."
@@ -384,6 +404,7 @@ object ArticalsStrings {
     }
 
     object Rider {
+        const val problemReported = "Reported. The office can see it"
         const val title = "My deliveries"
         const val empty = "No deliveries assigned to you"
         const val emptyBody = "When your dispatcher assigns you a job, it appears here."
