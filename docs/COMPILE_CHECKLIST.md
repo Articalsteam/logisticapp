@@ -21,9 +21,11 @@ commands in §4 have been run on a machine with the Android SDK and Xcode.
 | Named arguments against our own functions | `python3 tools/check_named_args.py composeApp/src` | 1 658 named arguments across 141 files, **0 problems** |
 | Every file is structurally closed | `python3 tools/check_balance.py .` | 143 `.kt` files, **0 problems** |
 | Rules tests | `cd functions && npm run test:rules` (Firestore emulator) | **Not run here** — the emulator JAR is not downloadable from this sandbox. Owner's machine only. |
-| Codemagic workflows | `codemagic.yaml` (three workflows) | **Written, never run.** The first push runs `android-checks`, which is the first time this code meets a Kotlin compiler. See §7.1 of `docs/SETUP.md`. |
+| Codemagic workflows | `codemagic.yaml` (three workflows) | **Run at last.** `android-checks` now reaches Gradle (see the two rows below); the workflow itself no longer fails on configuration or on the wrapper. |
+| **Gradle 9.6.0 runs on Codemagic** | `./gradlew --version` — step *Resolve the Gradle distribution* | **Run and passed.** The wrapper found its pinned distribution, downloaded it on the macOS runner and printed the version. The wrapper question (traps 11 and 12) is closed; from here the only question is the code. |
+| **The first real Gradle build** | `./gradlew --console=plain --stacktrace :composeApp:compileKotlinMetadata` — step *Compile the shared Kotlin (fast pass…)* | **Ran and failed in 12 s at execution, for a reason not yet captured.** Gradle 9.6.0 configured the entire build — AGP 9.4.2, Kotlin 2.4.21, Compose 1.12.1, both modules — because `Configuration cache entry stored.` is printed only after configuration finishes. So the failure is *not* a build-script, plugin-resolution or SDK problem, and 12 s is far too short for the Kotlin compiler to have started on 143 files: the failing task is something in the graph *before* compilation. The pasted log is the last 50 lines, all `DaemonCommandExecution` frames, so the `* What went wrong:` block is still unknown. It is likely `:composeApp:checkKotlinGradlePluginConfigurationErrors` (KGP wires it as a dependency of every Kotlin compile task and it fails fast on configuration diagnostics) or a Compose-resources task. Two changes follow (trap 13): the fast pass targets `compileCommonMainKotlinMetadata`, and the step prints the Kotlin `e:` lines plus the `* What went wrong:` block **last**, so the next log's visible 50 lines contain the answer. |
 | Gradle wrapper restore | `rm -f gradlew gradlew.bat gradle/wrapper/* && bash tools/ci/ensure_gradle_wrapper.sh 9.6.0` | **Run.** Downloads the wrapper from `gradle/gradle@v9.6.0`, validates the jar's manifest, writes the properties, and reports the pin. A second run is a no-op. |
-| **The wrapper actually runs** | `JAVA_HOME=<jdk4py Temurin 25> ./gradlew --version` | **Run, and it works up to the network.** The jar loads, `org.gradle.wrapper.GradleWrapperMain` starts, the properties parse, the pinned URL `…/gradle-9.6.0-bin.zip` is resolved, and the `retries=3` / `retryBackOffMs=500` written into those properties are honoured (`Attempt 1/4 … 4/4`). The download itself fails with `SSLHandshakeException` because **this sandbox has no route to services.gradle.org** — so Gradle has still never run, and no dependency has ever been resolved. |
+| The wrapper runs here too, as far as the network allows | `JAVA_HOME=<jdk4py Temurin 25> ./gradlew --version` | **Run, and it works up to the network.** The jar loads, `org.gradle.wrapper.GradleWrapperMain` starts, the properties parse, the pinned URL `…/gradle-9.6.0-bin.zip` is resolved, and the `retries=3` / `retryBackOffMs=500` written into those properties are honoured (`Attempt 1/4 … 4/4`). The download itself fails with `SSLHandshakeException` because **this sandbox has no route to services.gradle.org** — so Gradle has still never run, and no dependency has ever been resolved. |
 | Wrapper bootstrap under Gradle 8.14.1 (the old approach) | a stub of 8.14.1's behaviour, then twice on Codemagic | **Failed on Codemagic**, twice, and is gone. See trap 11. |
 
 The five checkers are structural, not a type checker. Between them they catch: a named
@@ -260,6 +262,26 @@ and the missing unconfirmed-rider-cost seed case, both listed under §1.
     toolchain download.
 
 
+13. **`:composeApp:compileKotlinMetadata` compiles nothing in Kotlin 2.4.x.** The
+    metadata target's legacy `main` compilation is configured with
+    `compileTaskProvider.configure { it.onlyIf { false } }`, and its classpath is cleared
+    (`compileDependencyFiles = project.files()`). Verified in
+    `KotlinMetadataTargetConfigurator.kt` at tag `v2.4.21` of `JetBrains/kotlin`
+    (`libraries/tools/kotlin-gradle-plugin/src/common/kotlin/org/jetbrains/kotlin/gradle/targets/metadata/`).
+    Since the hierarchical layout, the real work is done by *per-source-set* metadata
+    compilations: KGP creates one for every common source set that more than one target
+    compiles, named after the source set. The task that actually compiles commonMain is
+    **`:composeApp:compileCommonMainKotlinMetadata`**. The legacy task therefore proves
+    nothing — it either succeeds without compiling a line, or fails because of some other
+    task in its graph, which is why its failure says nothing about the shared code.
+    The fast pass in `codemagic.yaml` now runs the per-source-set task.
+
+    Reading a CI log: the fast-pass step keeps the whole output in
+    `/tmp/gradle-metadata-compile.log` and, when it fails, prints the Kotlin `e:` lines and
+    Gradle's `* What went wrong:` block **last**, because the Codemagic UI shows only the
+    last 50 lines of a step and a `--stacktrace` tail is a wall of Gradle internals with no
+    message in it. `--stacktrace` is still passed, so the trace is in the full log.
+
 ## 4. First real build — in this order
 
 ```bash
@@ -267,8 +289,10 @@ and the missing unconfirmed-rider-cost seed case, both listed under §1.
 ./gradlew :androidApp:assembleCompanyRelease -Particals.mode=demo        # expect a clear failure
 ./gradlew :androidApp:assembleCompanyRelease -Particals.mode=demo -Pallow.demo.release=true  # expect success
 
-# 1. Metadata only (fastest way to see unresolved references in shared code)
-./gradlew :composeApp:compileKotlinMetadata
+# 1. Metadata only (fastest way to see unresolved references in shared code).
+#    NOT :composeApp:compileKotlinMetadata — that task is disabled by KGP 2.4.x and
+#    compiles nothing (trap 13).
+./gradlew :composeApp:compileCommonMainKotlinMetadata
 
 # 2. Android debug (demo mode is the default)
 ./gradlew :androidApp:assembleCompanyDebug

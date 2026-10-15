@@ -105,12 +105,44 @@ workflows:
           # cannot fetch its distribution" is one unambiguous line in the log rather than
           # a stack trace buried in a compilation step.
           ./gradlew --version
-      - name: Compile the shared Kotlin (fast pass, before the iOS toolchain)
+      - name: Compile commonMain metadata (fast pass, before the iOS toolchain)
         script: |
-          # Metadata compilation of commonMain: the quickest way to see unresolved
-          # references and type errors in the shared code, without waiting for the
-          # Kotlin/Native toolchain that the tests below need.
-          ./gradlew --console=plain --stacktrace :composeApp:compileKotlinMetadata
+          # The quickest real compile: commonMain's metadata only — no Kotlin/Native
+          # toolchain, no Android emulator, no tests. Unresolved references, type errors
+          # and wrong argument names in the shared code surface here first.
+          #
+          # The task is compileCommonMainKotlinMetadata, NOT compileKotlinMetadata: in
+          # Kotlin 2.4.x the metadata target's legacy 'main' compilation is configured
+          # with `onlyIf { false }` (KotlinMetadataTargetConfigurator, KGP v2.4.21), so
+          # :composeApp:compileKotlinMetadata is a task that compiles nothing and proves
+          # nothing. See docs/COMPILE_CHECKLIST.md §3 trap 13.
+          #
+          # The whole log is kept in a file; on failure the part that matters is printed
+          # LAST, because the Codemagic UI shows only the last 50 lines of a step and a
+          # --stacktrace tail on its own is a wall of Gradle internals with no message.
+          log=/tmp/gradle-metadata-compile.log
+          if ./gradlew --console=plain --stacktrace \
+               :composeApp:compileCommonMainKotlinMetadata >"$log" 2>&1; then
+            tail -n 20 "$log"
+            echo "commonMain metadata compiled: no Kotlin errors above."
+          else
+            set +e
+            echo "==================== THIS STEP FAILED ===================="
+            echo "--- Kotlin/Gradle diagnostic lines (e: / w: ) ---"
+            grep -E '^[we]: ' "$log" | head -n 25 || true
+            echo "--- Gradle: what went wrong ---"
+            sed -n '/^FAILURE: Build failed/,/^\* Try:/p' "$log" | head -n 40
+            echo "--- Kotlin Multiplatform tasks that exist in :composeApp ---"
+            ./gradlew --console=plain -q :composeApp:tasks --all 2>/dev/null \
+              | grep -iE 'metadata' | head -n 25 || true
+            echo "--- last 40 lines of the raw log ---"
+            tail -n 40 "$log"
+            echo "--- the message again, so it survives the last-50-lines view ---"
+            sed -n '/^\* What went wrong:/,+12p' "$log"
+            grep -E '^e: ' "$log" | head -n 8 || true
+            echo "==================== END OF FAILURE ======================"
+            exit 1
+          fi
       - name: Compile every target and run the tests
         script: |
           # `allTests` is Kotlin Multiplatform's aggregate: the Android host tests plus
