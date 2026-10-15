@@ -8,7 +8,13 @@ source tree.
 
 Usage:
   python3 check_member_calls.py <root> store=DemoStore [controls=DemoControls ...]
-"""
+
+The `name=Type` arguments are for *instance-style* receivers, and the name must be
+lowercase (`store`, `controls`, `simulator`). Passing an uppercase `object` there routes
+the lookup through the class map and reports every one of its members as missing — that
+is a misuse of this tool, not a defect in the source. Object members are checked
+automatically by the static pass (`OrderStatus.label`, `ArticalsStrings.Shell.title`).
+""'
 import re
 import sys
 from pathlib import Path

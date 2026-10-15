@@ -82,6 +82,29 @@ object Permissions {
     }
 
     /**
+     * The catalogue, grouped for the staff editor.
+     *
+     * Order matters: the group order here is the order the screen shows, and inside a
+     * group the permissions are in the order they were declared above. Nothing is
+     * inferred from the permission string at runtime, so a new permission with an
+     * unexpected prefix cannot vanish from the editor.
+     */
+    fun groups(): List<Pair<String, List<String>>> = listOf(
+        "Company" to listOf(CompanySettingsView, CompanySettingsManage),
+        "Staff" to listOf(StaffView, StaffManage),
+        "Pricing" to listOf(PricingView, PricingManage, QuotesCreate, QuotesOverridePrice),
+        "Deliveries" to listOf(
+            OrdersViewAll, OrdersViewAssigned, OrdersCreate, OrdersUpdate, OrdersCancel,
+            OrdersAssign, OrdersCorrectStatus, OrdersUpdateStatus, OrdersRecordActuals, OrdersRecordProof,
+        ),
+        "Riders" to listOf(RidersView, RidersManage),
+        "Customers" to listOf(CustomersView, CustomersManage),
+        "Expenses" to listOf(ExpensesView, ExpensesManage),
+        "Reports" to listOf(ReportsViewOperational, ReportsViewFinancial, ReportsExport),
+        "Subscription and sharing" to listOf(SubscriptionViewStatus, TrackingShareLink),
+    )
+
+    /**
      * Effective permissions for a membership.
      *
      * An owner always keeps everything: revoking permissions from the owner would let

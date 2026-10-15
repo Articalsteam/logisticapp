@@ -45,6 +45,7 @@ object Routes {
     const val Subscription = "settings/subscription"
     const val Notifications = "notifications"
     const val Tracking = "tracking"
+    const val LimitedAccess = "limited-access"
     const val AdoptInvitation = "invitation"
 
     // --- the rider app ----------------------------------------------------
@@ -104,7 +105,7 @@ object Routes {
             Dashboard, Orders, OrderDetail, NewOrder, Calculator, Quotes,
             Customers, CustomerDetail, Riders, RiderDetail, Expenses, Reports, Settings, CompanySettings,
             PricingSettings, Team, Subscription, Notifications, Onboarding,
-            Workspaces, NoCompany, Tracking, AdoptInvitation,
+            Workspaces, NoCompany, Tracking, LimitedAccess, AdoptInvitation,
             -> role != null && role != Roles.Rider
 
             // Riders only.

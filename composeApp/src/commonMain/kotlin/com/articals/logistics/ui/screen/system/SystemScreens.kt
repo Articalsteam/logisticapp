@@ -183,3 +183,79 @@ fun NoAccessScreen(
         }
     }
 }
+
+/**
+ * Shown when the company's access has stopped covering new work.
+ *
+ * It is not a wall: reading, exporting and sharing keep working, and the screen says so.
+ * What it explains is the difference between "you cannot work" and "you cannot start new
+ * work" — the second is what a limited workspace actually means.
+ */
+@Composable
+fun LimitedAccessScreen(
+    entitlement: String?,
+    daysRemaining: Int?,
+    onOpenSubscription: () -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val state = entitlement.orEmpty()
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(Spacing.screen),
+    ) {
+        DemoStrip()
+        Spacer(Modifier.height(Spacing.md))
+        Text(
+            text = ArticalsStrings.Subscription.readOnlyTitle,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(Modifier.height(Spacing.sm))
+        Banner(
+            text = com.articals.logistics.domain.EntitlementStates.notice(state, daysRemaining)
+                ?: ArticalsStrings.Subscription.readOnlyBody,
+            tone = BannerTone.Warning,
+        )
+
+        Spacer(Modifier.height(Spacing.md))
+        SectionCard(title = ArticalsStrings.Subscription.title) {
+            Text(
+                text = ArticalsStrings.Subscription.labelFor(state),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
+            )
+            Spacer(Modifier.height(Spacing.xs))
+            Text(
+                text = ArticalsStrings.Subscription.readOnlyBody,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        Spacer(Modifier.height(Spacing.md))
+        SectionCard(title = ArticalsStrings.Subscription.stillWorksTitle) {
+            ArticalsStrings.Subscription.stillWorksBody.forEach { line ->
+                Text(
+                    text = "• $line",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(Spacing.md))
+        Button(onClick = onOpenSubscription, modifier = Modifier.fillMaxWidth()) {
+            Text(ArticalsStrings.Subscription.title)
+        }
+        Spacer(Modifier.height(Spacing.sm))
+        Button(
+            onClick = onBack,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(ArticalsStrings.Common.back)
+        }
+        Spacer(Modifier.height(Spacing.xxl))
+    }
+}

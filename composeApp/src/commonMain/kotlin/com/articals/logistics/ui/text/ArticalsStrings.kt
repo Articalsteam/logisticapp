@@ -356,6 +356,122 @@ object ArticalsStrings {
         const val riderHistoricalAverage = "Average from recent deliveries"
     }
 
+    /**
+     * CSV reports.
+     *
+     * The cap is said out loud. A report that silently stops at the row limit is the
+     * kind of number somebody reconciles against and cannot explain.
+     */
+    object Reports {
+        const val subtitle = "Download your deliveries, finances, riders and customers as CSV."
+        const val what = "What to download"
+        const val when = "Which days"
+        const val today = "Today"
+        const val lastSevenDays = "Last 7 days"
+        const val lastThirtyDays = "Last 30 days"
+        const val thisMonth = "This month"
+        const val custom = "Choose days"
+        const val from = "From"
+        const val to = "To"
+        const val rangeInvalid = "Use YYYY-MM-DD and a from-date that is not after the to-date."
+        const val needsPermission = "Your role cannot download reports."
+        const val columnsNote = "One row per delivery, with the dates in your company's own days."
+        const val financialNote =
+            "Charges, costs and profit. These figures come from what was recorded, not from an estimate."
+        const val file = "File"
+        const val rows = "Rows"
+        const val storageReady = "The file is ready to download. The link is signed and stops working after a while."
+        const val inlineNotice =
+            "The rows are ready to share as text: paste them into a spreadsheet, or send them on."
+        const val emptyFile = "There is nothing in this date range."
+    }
+
+    /**
+     * Staff and permissions.
+     *
+     * The two things that make this screen unusual, in words: the owner keeps
+     * everything, and changing somebody's access leaves a reason behind.
+     */
+    object Team {
+        const val subtitle = "Who works in this workspace, and what they may do."
+        const val empty = "Nobody else yet"
+        const val emptyBody = "Invite the people who work with you: a manager, a dispatcher, a rider."
+        const val members = "People"
+        const val inviteTitle = "Invite somebody"
+        const val inviteBody =
+            "Articals makes a one-time link. You send it however you like — Articals does not send it for you."
+        const val displayName = "What to call them (optional)"
+        const val role = "Their role"
+        const val permissionTitle = "What they may do"
+        const val permissionBody =
+            "A role sets the starting point. Change one permission to make an exception for this person."
+        const val defaultChoice = "As the role says"
+        const val allowChoice = "Allow"
+        const val denyChoice = "Deny"
+        const val ownerKeepsEverything = "The owner always keeps every permission."
+        const val reason = "Why the change?"
+        const val reasonExplain = "Changing what somebody may do is recorded, with this reason."
+        const val disabled = "Disabled"
+        const val disableBody =
+            "They keep their history and lose access immediately. Their deliveries stay assigned to them."
+        const val roleChanged = "Role saved"
+        fun inviteEmailInvalid() = "That does not look like an email address."
+        fun inviteSent(email: String, role: String) =
+            "Invitation created for $email as ${com.articals.logistics.core.Roles.label(role)}"
+        fun reasonRequired() = "A reason of at least three characters is needed for this change."
+        fun lastOwner() = "This is the only owner. Make somebody else an owner first."
+        fun memberSaved(role: String) = "Access saved: ${com.articals.logistics.core.Roles.label(role)}"
+        const val memberDisabled = "They can no longer sign in to this workspace"
+        const val memberEnabled = "They can sign in again"
+        const val youLabel = "You"
+        const val needsPermission = "Your role cannot see the staff list."
+        fun disableTitle(name: String) = "Stop $name signing in?"
+        fun overrides(count: Int) =
+            if (count == 1) "1 permission changed for this person" else "$count permissions changed for this person"
+    }
+
+    /**
+     * Company settings.
+     *
+     * The public tracking switches are the delicate part and are worded that way: they
+     * decide what a customer who has only a link can see.
+     */
+    object CompanySettings {
+        const val title = "Company"
+        const val subtitle = "Your name, your contact details and how your deliveries are numbered."
+        const val missing = "This workspace's company record could not be read."
+        const val saved = "Company details saved"
+        const val readOnly = "Your role can see these details but not change them."
+        const val incomplete = "A name, a valid email and a colour like #14532D are needed before this can be saved."
+        const val brandColour = "Brand colour"
+        const val brandColourExplain = "Six digits in hex, such as #14532D. It colours the tracking page."
+        const val brandColourInvalid = "Use a six-digit hex colour such as #14532D."
+        const val logo = "Logo"
+        const val logoExplain = "A photo of your sign works. It is shown on the tracking page and on documents."
+        const val logoTakePhoto = "Take a photo of the logo"
+        const val logoUploading = "Uploading the logo…"
+        const val logoUploaded = "Logo uploaded"
+        const val logoUrl = "Or paste a link to a logo"
+        const val serviceAreas = "Areas you deliver in"
+        const val serviceAreasExplain =
+            "These are the areas an office user picks from, and the areas your prices can be set per pair of."
+        const val addArea = "Add an area"
+        const val areaHint = "For example Ikeja"
+        const val noAreas = "No areas added yet"
+        const val orderNumberPrefix = "Order number prefix"
+        const val orderNumberPrefixExplain = "Up to four letters. Deliveries are numbered LIKE-THIS-0001."
+        const val prefixInvalid = "Use four letters at most."
+        const val trackingTitle = "What the tracking page shows"
+        const val trackingExplain =
+            "A customer with the link sees the delivery's status and, if you allow it, the two areas."
+        const val shareAreas = "Show the pickup and destination areas"
+        const val requireVerification = "Ask for the last four digits of their phone number first"
+        const val requireVerificationExplain =
+            "A stronger setting for companies that handle sensitive deliveries. It applies to every customer."
+    }
+
+    
+
     object Pricing {
         const val title = "Price calculator"
         const val subtitle = "Every figure below comes from your own rate card."
@@ -644,6 +760,50 @@ object ArticalsStrings {
      * from the copy: a screen may show a reason the device has never heard of, and the
      * raw code is a better thing to display than nothing.
      */
+    /**
+     * The human name of a permission.
+     *
+     * The backend's permission strings are the contract; this is what the staff editor
+     * shows. A permission this app does not know about is shown as-is rather than
+     * hidden — an unknown grant is exactly the thing an owner needs to see.
+     */
+    /** The entitlement's own words, shared by the subscription screen and the console. */
+    fun entitlementLabel(state: String): String =
+        com.articals.logistics.domain.EntitlementStates.label(state)
+
+    fun permissionLabel(permission: String): String = when (permission) {
+        com.articals.logistics.core.Permissions.CompanySettingsView -> "See company settings"
+        com.articals.logistics.core.Permissions.CompanySettingsManage -> "Change company settings"
+        com.articals.logistics.core.Permissions.StaffView -> "See the staff list"
+        com.articals.logistics.core.Permissions.StaffManage -> "Invite and change staff"
+        com.articals.logistics.core.Permissions.PricingView -> "See the rates"
+        com.articals.logistics.core.Permissions.PricingManage -> "Change the rates"
+        com.articals.logistics.core.Permissions.QuotesCreate -> "Price a delivery"
+        com.articals.logistics.core.Permissions.QuotesOverridePrice -> "Set a price by hand"
+        com.articals.logistics.core.Permissions.OrdersViewAll -> "See every delivery"
+        com.articals.logistics.core.Permissions.OrdersViewAssigned -> "See only assigned deliveries"
+        com.articals.logistics.core.Permissions.OrdersCreate -> "Create deliveries"
+        com.articals.logistics.core.Permissions.OrdersUpdate -> "Edit deliveries"
+        com.articals.logistics.core.Permissions.OrdersCancel -> "Cancel deliveries"
+        com.articals.logistics.core.Permissions.OrdersAssign -> "Assign riders"
+        com.articals.logistics.core.Permissions.OrdersCorrectStatus -> "Correct a status"
+        com.articals.logistics.core.Permissions.OrdersUpdateStatus -> "Move a delivery along"
+        com.articals.logistics.core.Permissions.OrdersRecordActuals -> "Record final amounts"
+        com.articals.logistics.core.Permissions.OrdersRecordProof -> "Take proof of delivery"
+        com.articals.logistics.core.Permissions.RidersView -> "See riders"
+        com.articals.logistics.core.Permissions.RidersManage -> "Add and change riders"
+        com.articals.logistics.core.Permissions.CustomersView -> "See customers"
+        com.articals.logistics.core.Permissions.CustomersManage -> "Add and change customers"
+        com.articals.logistics.core.Permissions.ExpensesView -> "See expenses"
+        com.articals.logistics.core.Permissions.ExpensesManage -> "Record expenses"
+        com.articals.logistics.core.Permissions.ReportsViewOperational -> "See operational reports"
+        com.articals.logistics.core.Permissions.ReportsViewFinancial -> "See money reports"
+        com.articals.logistics.core.Permissions.ReportsExport -> "Download reports"
+        com.articals.logistics.core.Permissions.SubscriptionViewStatus -> "See the subscription"
+        com.articals.logistics.core.Permissions.TrackingShareLink -> "Share a tracking link"
+        else -> permission
+    }
+
     fun attentionLabel(reason: String): String = when (reason) {
         com.articals.logistics.domain.AttentionReasons.Unassigned -> Attention.unassigned
         com.articals.logistics.domain.AttentionReasons.RiderCostUnconfirmed -> Attention.riderCostUnconfirmed
@@ -858,6 +1018,18 @@ object ArticalsStrings {
         const val lastPayment = "Last payment recorded"
         const val noPayment = "No payment recorded yet"
         const val paidOffline = "Recorded offline by Articals Studio"
+        const val unavailable = "The subscription could not be read."
+        const val receivedOn = "Received"
+        const val reason = "Reason"
+        const val planCatalogue = "The plans Articals Studio offers"
+        const val plansNotForSale =
+        const val stillWorksTitle = "What still works"
+        val stillWorksBody: List<String> = listOf(
+            "Reading every delivery, customer and rider you already have",
+            "Downloading your reports and exporting your data",
+            "Sharing a tracking link with a customer",
+        )
+            "Plans are agreed with Articals Studio and recorded here. This app never takes a payment."
         const val bypassActive = "Aricals Studio has granted access until"
         const val trialEndsOn = "Free trial ends"
 
@@ -971,7 +1143,61 @@ object ArticalsStrings {
         const val noAdminAccess = "This build has no platform console"
         const val noAdminAccessBody =
             "The console is compiled into the admin build only. Nothing is missing from your company build."
-    }
+
+        const val accessDenied = "The console needs the platform administrator account."
+        const val accessDeniedBody =
+            "This build is the administrator flavour but this account does not carry the platform claim. " +
+                "Nothing on this screen can be reached."
+        const val offlinePaymentExplain =
+            "Money that arrived outside the app. Recording it writes a ledger entry and sets the company's access."
+        const val amountAndReference = "An amount and the reference from the transfer are both needed."
+        fun paymentIncomplete() =
+            "An amount above zero, the reference from the transfer, a reason and three sane dates are needed."
+        const val bypassExplain =
+            "Access without payment. It always ends on a date and it always has a reason, because both are audited."
+        const val bypassIncomplete = "Choose a reason and a date after today."
+        const val revokeExplain =
+            "Revoking ends complimentary access. Suspending also stops the company signing in or writing."
+        const val revokeReasonRequired = "A reason of at least three characters is needed to revoke a bypass."
+        const val actionExplain = "The change is applied immediately and audited with the reason below."
+        const val actionIncomplete = "A reason is needed, and any detail the chosen action asks for."
+        const val ledgerExplain =
+            "Every period of access the platform has recorded: paid, offline or granted. The app never edits these."
+        const val auditExplain =
+            "What administrators and companies have done, newest first. Nothing here can be changed."
+        const val policyExplain =
+            "These numbers apply to every company: how long a trial lasts, how long a grace period is, " +
+                "the longest bypass that may be granted, and the standard paid period."
+        const val plansExplain = "What the studio sells. Companies see the catalogue; only the studio can change it."
+        const val periodDays = "Standard paid period (days)"
+        const val trialDays = "Trial (days)"
+        const val graceDays = "Grace period (days)"
+        const val externalReference = "Reference on the transfer"
+        const val receivedOn = "Money received on"
+        const val reasonForRecord = "Why is this being recorded?"
+        const val until = "Access until"
+        const val replacesExisting = "Replace the access this company already has"
+        const val alsoSuspend = "Also suspend the company"
+        const val daysToExtend = "How many days to add"
+        const val trialEnds = "New trial end date"
+        const val recordedBy = "Recorded by"
+        const val entryType = "Type"
+        const val filterByCompany = "Company id to filter by"
+        fun paymentRecordedWith(entitlement: String) =
+            "Payment recorded. The company is now ${entitlementLabel(entitlement).lowercase()}."
+        fun bypassGrantedWith(days: Int?) =
+            if (days == null) {
+                "Access granted"
+            } else {
+                "Access granted for $days ${if (days == 1) "day" else "days"}"
+            }
+        fun bypassRevokedWith(entitlement: String) =
+            "Complimentary access ended. The company is now ${entitlementLabel(entitlement).lowercase()}."
+        fun subscriptionApplied(entitlement: String) =
+            "Applied. The company is now ${entitlementLabel(entitlement).lowercase()}."
+        fun settingsSaved(updated: List<String>) =
+            if (updated.isEmpty()) "Saved" else "Saved: ${updated.joinToString()}"
+}
 
     object Errors {
         const val offlineTitle = "You are offline"

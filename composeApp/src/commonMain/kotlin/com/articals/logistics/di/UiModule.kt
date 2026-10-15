@@ -2,6 +2,11 @@ package com.articals.logistics.di
 
 import com.articals.logistics.ui.AppPreferences
 import com.articals.logistics.ui.nav.RootViewModel
+import com.articals.logistics.ui.screen.admin.AdminAuditViewModel
+import com.articals.logistics.ui.screen.admin.AdminCompaniesViewModel
+import com.articals.logistics.ui.screen.admin.AdminCompanyViewModel
+import com.articals.logistics.ui.screen.admin.AdminOverviewViewModel
+import com.articals.logistics.ui.screen.admin.AdminSettingsViewModel
 import com.articals.logistics.ui.screen.auth.RegisterViewModel
 import com.articals.logistics.ui.screen.auth.ResetPasswordViewModel
 import com.articals.logistics.ui.screen.auth.SignInViewModel
@@ -10,6 +15,7 @@ import com.articals.logistics.ui.screen.dashboard.DashboardViewModel
 import com.articals.logistics.ui.screen.notifications.NotificationsViewModel
 import com.articals.logistics.ui.screen.orders.OrderDetailViewModel
 import com.articals.logistics.ui.screen.onboarding.OnboardingViewModel
+import com.articals.logistics.ui.screen.companysettings.CompanySettingsViewModel
 import com.articals.logistics.ui.screen.customers.CustomerDetailViewModel
 import com.articals.logistics.ui.screen.customers.CustomersViewModel
 import com.articals.logistics.ui.screen.expenses.ExpensesViewModel
@@ -19,6 +25,9 @@ import com.articals.logistics.ui.screen.pricing.QuotesViewModel
 import com.articals.logistics.ui.screen.pricingsettings.PricingSettingsViewModel
 import com.articals.logistics.ui.screen.riders.RiderDetailViewModel
 import com.articals.logistics.ui.screen.riders.RidersViewModel
+import com.articals.logistics.ui.screen.reports.ReportsViewModel
+import com.articals.logistics.ui.screen.subscription.SubscriptionViewModel
+import com.articals.logistics.ui.screen.team.TeamViewModel
 import com.articals.logistics.ui.screen.tracking.TrackingViewModel
 import com.articals.logistics.ui.screen.rider.RiderHomeViewModel
 import com.articals.logistics.ui.screen.rider.RiderJobViewModel
@@ -84,6 +93,21 @@ val uiModule: Module = module {
     viewModel { ExpensesViewModel(expenses = get()) }
     viewModel { PricingSettingsViewModel(pricing = get()) }
     viewModel { TrackingViewModel(tracking = get()) }
+    viewModel { ReportsViewModel(insights = get()) }
+
+    // --- The subscription and the office's own settings --------------------
+    viewModel { SubscriptionViewModel(billing = get()) }
+    viewModel { TeamViewModel(members = get()) }
+    viewModel { CompanySettingsViewModel(companies = get(), storage = get(), photos = get()) }
+
+    // --- The platform console ----------------------------------------------
+    // Bound in both modes; the console is only *reachable* with the platform claim in
+    // the token and the administrator flavour compiled in.
+    viewModel { AdminOverviewViewModel(admin = get()) }
+    viewModel { AdminCompaniesViewModel(admin = get()) }
+    viewModel { AdminCompanyViewModel(admin = get()) }
+    viewModel { AdminSettingsViewModel(admin = get()) }
+    viewModel { AdminAuditViewModel(admin = get()) }
 
     // --- The rider's own screens -------------------------------------------
     viewModel { RiderHomeViewModel(orders = get(), riders = get()) }

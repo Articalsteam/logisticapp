@@ -20,6 +20,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -44,6 +45,8 @@ import com.articals.logistics.core.Roles
 import com.articals.logistics.data.dto.AppNotificationDto
 import com.articals.logistics.di.SupportLocator
 import com.articals.logistics.ui.AppPreferences
+import com.articals.logistics.ui.component.Banner
+import com.articals.logistics.ui.component.BannerTone
 import com.articals.logistics.ui.component.DemoBadge
 import com.articals.logistics.ui.demo.DemoControlsSheet
 import com.articals.logistics.ui.demo.rememberDemoActions
@@ -56,6 +59,12 @@ import com.articals.logistics.ui.screen.notifications.NotificationsScreen
 import com.articals.logistics.ui.screen.onboarding.OnboardingScreen
 import com.articals.logistics.ui.screen.orders.OrderDetailScreen
 import com.articals.logistics.ui.screen.orders.OrdersScreen
+import com.articals.logistics.ui.screen.admin.AdminAuditScreen
+import com.articals.logistics.ui.screen.admin.AdminCompaniesScreen
+import com.articals.logistics.ui.screen.admin.AdminCompanyScreen
+import com.articals.logistics.ui.screen.admin.AdminOverviewScreen
+import com.articals.logistics.ui.screen.admin.AdminSettingsScreen
+import com.articals.logistics.ui.screen.companysettings.CompanySettingsScreen
 import com.articals.logistics.ui.screen.customers.CustomerDetailScreen
 import com.articals.logistics.ui.screen.customers.CustomersScreen
 import com.articals.logistics.ui.screen.expenses.ExpensesScreen
@@ -64,16 +73,21 @@ import com.articals.logistics.ui.screen.pricing.QuotesScreen
 import com.articals.logistics.ui.screen.pricingsettings.PricingSettingsScreen
 import com.articals.logistics.ui.screen.riders.RiderDetailScreen
 import com.articals.logistics.ui.screen.riders.RidersScreen
+import com.articals.logistics.ui.screen.reports.ReportsScreen
+import com.articals.logistics.ui.screen.subscription.SubscriptionScreen
+import com.articals.logistics.ui.screen.team.TeamScreen
 import com.articals.logistics.ui.screen.tracking.TrackingScreen
 import com.articals.logistics.ui.screen.rider.RiderHomeScreen
 import com.articals.logistics.ui.screen.rider.RiderJobScreen
 import com.articals.logistics.ui.screen.settings.SettingsScreen
+import com.articals.logistics.ui.screen.system.LimitedAccessScreen
 import com.articals.logistics.ui.screen.system.NoAccessScreen
 import com.articals.logistics.ui.screen.system.NotConfiguredScreen
 import com.articals.logistics.ui.screen.system.SplashScreen
 import com.articals.logistics.ui.screen.workspace.NoCompanyScreen
 import com.articals.logistics.ui.screen.workspace.WorkspacesScreen
 import com.articals.logistics.ui.text.ArticalsStrings
+import com.articals.logistics.ui.theme.Spacing
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -136,7 +150,15 @@ fun ArticalsNavigation(
             }
         },
     ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+        Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            // A workspace that cannot start new work says so before a save fails, and
+            // loses nothing else: reading, exporting and sharing all keep working.
+            LimitedAccessNotice(
+                entitlement = state.entitlement,
+                role = state.role,
+                onOpen = { navController.navigate(Routes.LimitedAccess) },
+            )
+            Box(modifier = Modifier.fillMaxSize()) {
             NavHost(
                 navController = navController,
                 startDestination = Routes.Splash,
@@ -409,6 +431,153 @@ fun ArticalsNavigation(
                     }
                 }
 
+                composable(Routes.Reports) {
+                    Guarded(navController = navController, state = state, route = Routes.Reports) {
+                        val tenantId = state.activeTenantId
+                        if (tenantId == null) {
+                            NoAccessScreen(onBack = { navController.popBackStack() })
+                        } else {
+                            ReportsScreen(
+                                tenantId = tenantId,
+                                zoneId = state.zoneId,
+                                permissions = state.permissions,
+                            )
+                        }
+                    }
+                }
+
+                composable(Routes.CompanySettings) {
+                    Guarded(navController = navController, state = state, route = Routes.CompanySettings) {
+                        val tenantId = state.activeTenantId
+                        if (tenantId == null) {
+                            NoAccessScreen(onBack = { navController.popBackStack() })
+                        } else {
+                            CompanySettingsScreen(
+                                tenantId = tenantId,
+                                permissions = state.permissions,
+                            )
+                        }
+                    }
+                }
+
+                composable(Routes.Team) {
+                    Guarded(navController = navController, state = state, route = Routes.Team) {
+                        val tenantId = state.activeTenantId
+                        if (tenantId == null) {
+                            NoAccessScreen(onBack = { navController.popBackStack() })
+                        } else {
+                            TeamScreen(
+                                tenantId = tenantId,
+                                currentUserId = state.user?.uid,
+                                permissions = state.permissions,
+                            )
+                        }
+                    }
+                }
+
+                composable(Routes.Subscription) {
+                    Guarded(navController = navController, state = state, route = Routes.Subscription) {
+                        val tenantId = state.activeTenantId
+                        if (tenantId == null) {
+                            NoAccessScreen(onBack = { navController.popBackStack() })
+                        } else {
+                            SubscriptionScreen(
+                                tenantId = tenantId,
+                                currency = state.currency,
+                                timeZoneId = state.zoneId,
+                            )
+                        }
+                    }
+                }
+
+                composable(Routes.LimitedAccess) {
+                    LimitedAccessScreen(
+                        entitlement = state.entitlement,
+                        daysRemaining = null,
+                        onOpenSubscription = { navController.navigate(Routes.Subscription) },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+
+                // --- the platform console --------------------------------------
+                composable(Routes.AdminOverview) {
+                    Guarded(navController = navController, state = state, route = Routes.AdminOverview) {
+                        AdminOverviewScreen(
+                            timeZoneId = state.zoneId,
+                            onOpenCompany = { tenantId -> navController.navigate(Routes.adminCompany(tenantId)) },
+                            onOpenCompanies = { navController.navigate(Routes.AdminCompanies) },
+                            onOpenSettings = { navController.navigate(Routes.AdminSettings) },
+                            onOpenAudit = { navController.navigate(Routes.AdminAudit) },
+                        )
+                    }
+                }
+
+                composable(Routes.AdminCompanies) {
+                    Guarded(navController = navController, state = state, route = Routes.AdminCompanies) {
+                        AdminCompaniesScreen(
+                            onOpenCompany = { tenantId -> navController.navigate(Routes.adminCompany(tenantId)) },
+                            onBack = { navController.popBackStack() },
+                        )
+                    }
+                }
+
+                composable(
+                    route = Routes.AdminCompanyDetail,
+                    arguments = listOf(
+                        navArgument(Routes.ArgTenantId) { type = NavType.StringType },
+                    ),
+                ) { entry ->
+                    Guarded(navController = navController, state = state, route = Routes.AdminCompanyDetail) {
+                        val tenantId = entry.arguments?.getString(Routes.ArgTenantId)
+                        if (tenantId.isNullOrBlank()) {
+                            NoAccessScreen(onBack = { navController.popBackStack() })
+                        } else {
+                            AdminCompanyScreen(
+                                tenantId = tenantId,
+                                company = null,
+                                currency = state.currency,
+                                timeZoneId = state.zoneId,
+                                onBack = { navController.popBackStack() },
+                            )
+                        }
+                    }
+                }
+
+                composable(
+                    route = Routes.AdminPayments,
+                    arguments = listOf(
+                        navArgument(Routes.ArgTenantId) { type = NavType.StringType },
+                    ),
+                ) { entry ->
+                    Guarded(navController = navController, state = state, route = Routes.AdminPayments) {
+                        val tenantId = entry.arguments?.getString(Routes.ArgTenantId)
+                        if (tenantId.isNullOrBlank()) {
+                            NoAccessScreen(onBack = { navController.popBackStack() })
+                        } else {
+                            AdminCompanyScreen(
+                                tenantId = tenantId,
+                                company = null,
+                                currency = state.currency,
+                                timeZoneId = state.zoneId,
+                                focusPayments = true,
+                                onBack = { navController.popBackStack() },
+                            )
+                        }
+                    }
+                }
+
+                composable(Routes.AdminSettings) {
+                    Guarded(navController = navController, state = state, route = Routes.AdminSettings) {
+                        AdminSettingsScreen(onBack = { navController.popBackStack() })
+                    }
+                }
+
+                composable(Routes.AdminAudit) {
+                    Guarded(navController = navController, state = state, route = Routes.AdminAudit) {
+                        AdminAuditScreen(onBack = { navController.popBackStack() })
+                    }
+                }
+
                 composable(Routes.Settings) {
                     SettingsScreen(
                         signedInAs = state.user?.email,
@@ -487,6 +656,7 @@ fun ArticalsNavigation(
                 }
             }
         }
+            }
     }
 
     if (demoPanelOpen) {
@@ -566,6 +736,30 @@ private fun isBareRoute(route: String): Boolean = isSessionRoute(route)
  * The rule lives in [Routes.canOpen]; this is the enforcement point, so a screen a
  * role may not use renders an explanation instead of data it should not have.
  */
+@Composable
+/**
+ * The banner that appears when the company's access no longer covers new work.
+ *
+ * It is deliberately quiet and never blocking: a limited workspace is still a workspace.
+ */
+@Composable
+private fun LimitedAccessNotice(
+    entitlement: String?,
+    role: String?,
+    onOpen: () -> Unit,
+) {
+    if (role == null || role == Roles.Rider) return
+    if (com.articals.logistics.domain.EntitlementStates.canWrite(entitlement.orEmpty())) return
+
+    Banner(
+        text = com.articals.logistics.domain.EntitlementStates.notice(entitlement.orEmpty(), null)
+            ?: ArticalsStrings.Subscription.readOnlyBody,
+        tone = BannerTone.Warning,
+        modifier = Modifier.padding(horizontal = Spacing.screen),
+        action = { TextButton(onClick = onOpen) { Text(ArticalsStrings.Subscription.title) } },
+    )
+}
+
 @Composable
 private fun Guarded(
     navController: NavHostController,
