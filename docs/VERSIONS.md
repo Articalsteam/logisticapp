@@ -10,11 +10,37 @@ records the evidence.
 
 | Component | Version | Evidence |
 | --- | --- | --- |
-| Android Gradle Plugin | 9.4.2 | `dl.google.com/dl/android/maven2/com/android/tools/build/gradle/maven-metadata.xml` |
+| Android Gradle Plugin | 9.4.1 | plugin-marker metadata `com/android/application/com.android.application.gradle.plugin/maven-metadata.xml` and `com/android/tools/build/gradle/maven-metadata.xml` — see the correction below |
 | Kotlin | 2.4.21 | Maven Central metadata for `org.jetbrains.kotlin:kotlin-stdlib` |
 | Gradle | 9.6.0 (minimum for AGP 9.4) | AGP 9.4 release notes |
 | Compose Multiplatform | 1.12.1 | `org.jetbrains.compose` plugin marker on Maven Central |
 | JDK toolchain | 17 | AGP 9 requirement |
+
+**Correction (2026-10-15): AGP 9.4.2 does not exist, and this file said it did.**
+`android-checks` failed with `Plugin [id: 'com.android.application', version: '9.4.2',
+apply: false] was not found in any of the following sources … could not resolve plugin
+artifact 'com.android.application:com.android.application.gradle.plugin:9.4.2'`.
+Re-reading the registry explains it: the 9.4 line of that marker — and of
+`com.android.tools.build:gradle` itself — is `9.4.0`, `9.4.1`, then `9.5.0-alpha01` …
+`9.5.0-alpha10`. There is no 9.4.2 to resolve, so the build could never have started.
+The pin is now **9.4.1**, which is the newest stable in the line and the version whose
+plugin markers for both `com.android.application` and
+`com.android.kotlin.multiplatform.library` are published.
+
+Every other version in this file and in `gradle/libs.versions.toml` was re-checked the
+same day and is correct:
+`org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.21`, `org.jetbrains.compose:compose-gradle-plugin:1.12.1`,
+`com.google.gms:google-services:4.5.0`, `com.google.firebase:firebase-crashlytics-gradle:3.0.8`
+(and their markers), `org.jetbrains.androidx.navigation:navigation-compose:2.9.2`,
+`org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose:2.11.0`,
+`io.insert-koin:koin-core:4.2.2`, `io.coil-kt.coil3:coil-compose:3.6.3`,
+`androidx.compose.ui:ui-test-junit4:1.12.1`, `com.google.firebase:firebase-bom:34.18.0`.
+
+**Reading a version list:** the head of a `maven-metadata.xml` is `<latest>`/`<release>`,
+and `<latest>` is frequently a prerelease (`9.5.0-alpha10` in this case), while the
+`<version>` list is chronological. Take the last entry that is *not* an alpha/beta/rc, and
+never assume a patch number exists because the previous one did. See
+`docs/COMPILE_CHECKLIST.md` §3 trap 14.
 
 ## Android SDK levels
 

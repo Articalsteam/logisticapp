@@ -1,7 +1,9 @@
 #
 # Articals Logistics — single source of truth for dependency versions.
 #
-# Every version below was verified against the real registry on 2026-10-14:
+# Every version below was verified against the real registry on 2026-10-14, and each
+# one was re-checked on 2026-10-15 after AGP 9.4.2 turned out not to exist at all
+# (android-checks failed to resolve its plugin marker; the 9.4 line ends at 9.4.1).
 #   * Maven Central / Google Maven metadata (maven-metadata.xml)
 #   * GitHub release feeds
 #   * npm registry
@@ -12,7 +14,7 @@
 # ---------------------------------------------------------------------------
 # Build tooling
 # ---------------------------------------------------------------------------
-agp = "9.4.2"                     # latest stable; supports compileSdk 37, needs Gradle >= 9.6
+agp = "9.4.1"                     # newest stable in the 9.4 line — there is NO 9.4.2 (see docs/VERSIONS.md); supports compileSdk 37, needs Gradle >= 9.6
 kotlin = "2.4.21"                 # latest stable Kotlin (2026-10-08)
 composeMultiplatform = "1.12.1"   # latest stable Compose Multiplatform (2026-09-22)
 googleServices = "4.5.0"          # com.google.gms:google-services
