@@ -22,6 +22,8 @@ commands in §4 have been run on a machine with the Android SDK and Xcode.
 | Every file is structurally closed | `python3 tools/check_balance.py .` | 143 `.kt` files, **0 problems** |
 | Rules tests | `cd functions && npm run test:rules` (Firestore emulator) | **Not run here** — the emulator JAR is not downloadable from this sandbox. Owner's machine only. |
 | Codemagic workflows | `codemagic.yaml` (three workflows) | **Written, never run.** The first push runs `android-checks`, which is the first time this code meets a Kotlin compiler. See §7.1 of `docs/SETUP.md`. |
+| Gradle wrapper restore | `rm -f gradlew gradlew.bat gradle/wrapper/* && bash tools/ci/ensure_gradle_wrapper.sh 9.6.0` | **Run.** Downloads the wrapper from `gradle/gradle@v9.6.0`, validates the jar's manifest, writes the properties, and reports the pin. A second run is a no-op. The wrapper itself has never been executed (no JDK here). |
+| Wrapper bootstrap under Gradle 8.14.1 (the old approach) | a stub of 8.14.1's behaviour | **Failed on Codemagic**, twice, and is gone. See trap 11. |
 
 The five checkers are structural, not a type checker. Between them they catch: a named
 argument a class or function does not declare, a member that does not exist, an import
@@ -208,22 +210,20 @@ and the missing unconfirmed-rider-cost seed case, both listed under §1.
     KMP artefact). Route strings live in `ui/nav/Routes.kt`; the session decides the
     start destination, and `Routes.canOpen` is enforced inside the graph.
 
-11. **No Gradle wrapper, and Gradle 8.x cannot generate one in place.** The CI images
-    preinstall Gradle 8.14.1, which (a) refuses to configure this build — AGP 9.4 needs
-    Gradle 9.6.0 — and (b) refuses to run *any* task, including `wrapper`, in a directory
-    that is not a Gradle build. The first Codemagic run failed exactly there:
-    `Directory '/private/var/folders/…/tmp.4zT74yU1VX' does not contain a Gradle build`.
-    `tools/ci/ensure_gradle_wrapper.sh` now writes a one-line `settings.gradle.kts` into
-    its scratch directory first, which is the smallest thing that makes `gradle wrapper`
-    legal there, then verifies the generated properties point at 9.6.0 before copying.
-    Tested against a stub of Gradle 8.14.1's behaviour (success, failure-without-partial-
-    copy, wrong-version, and already-present).
-
-Balance check used in §1 (no compiler needed):
-
-```bash
-python3 tools/check_balance.py .
-```
+11. **Generating a wrapper with an installed Gradle does not work here — do not try.**
+    Twice, `android-checks` died at "Bootstrap the Gradle wrapper" with
+    `Directory '/private/var/folders/…/tmp.…' does not contain a Gradle build`. Gradle 8.x
+    refuses to run *any* task, `wrapper` included, in a directory that is not a Gradle
+    build — and this project cannot BE a Gradle build for 8.x, because its settings apply
+    AGP 9.4, which requires Gradle 9.6.0. Adding an empty `settings.gradle.kts` to the
+    scratch directory satisfies the first complaint but cannot satisfy the second, and it
+    would have been papering over the real problem.
+    **The wrapper is now committed** (`gradlew`, `gradlew.bat`,
+    `gradle/wrapper/gradle-wrapper.jar`, `gradle-wrapper.properties` pinned to 9.6.0),
+    fetched from `gradle/gradle@v9.6.0` — Gradle publishes its own wrapper files in its
+    repository, so no Gradle and no JDK are needed to obtain them. `./gradlew` then
+    downloads the 9.6.0 distribution itself on first use.
+    `tools/ci/ensure_gradle_wrapper.sh` only restores the files if they go missing
 
 ## 4. First real build — in this order
 

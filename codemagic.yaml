@@ -88,8 +88,12 @@ workflows:
           # half way through compilation.
           "$SDKMANAGER" "platforms;android-37" > /dev/null 2>&1 \
             || echo "platforms;android-37 was not installed by sdkmanager; AGP will try to fetch it."
-      - name: Bootstrap the Gradle wrapper
-        script: bash tools/ci/ensure_gradle_wrapper.sh "$GRADLE_VERSION"
+      - name: Restore the Gradle wrapper if it is missing
+        script: |
+          # A no-op in a normal checkout: the wrapper is committed, so `./gradlew` is
+          # already there. It exists for a checkout that lost the binary files — and it
+          # needs no Gradle and no JDK to do its job (tools/ci/ensure_gradle_wrapper.sh).
+          bash tools/ci/ensure_gradle_wrapper.sh "$GRADLE_VERSION"
       - name: Compile the shared Kotlin (fast pass, before the iOS toolchain)
         script: |
           # Metadata compilation of commonMain: the quickest way to see unresolved
@@ -133,8 +137,12 @@ workflows:
       - name: Point Gradle at the Android SDK
         script: |
           echo "sdk.dir=${ANDROID_SDK_ROOT:-$ANDROID_HOME}" > local.properties
-      - name: Bootstrap the Gradle wrapper
-        script: bash tools/ci/ensure_gradle_wrapper.sh "$GRADLE_VERSION"
+      - name: Restore the Gradle wrapper if it is missing
+        script: |
+          # A no-op in a normal checkout: the wrapper is committed, so `./gradlew` is
+          # already there. It exists for a checkout that lost the binary files — and it
+          # needs no Gradle and no JDK to do its job (tools/ci/ensure_gradle_wrapper.sh).
+          bash tools/ci/ensure_gradle_wrapper.sh "$GRADLE_VERSION"
       - name: Build the company demo app
         script: |
           ./gradlew --console=plain :androidApp:assembleCompanyDebug
@@ -174,8 +182,12 @@ workflows:
       - name: Point Gradle at the Android SDK
         script: |
           echo "sdk.dir=${ANDROID_SDK_ROOT:-$ANDROID_HOME}" > local.properties
-      - name: Bootstrap the Gradle wrapper
-        script: bash tools/ci/ensure_gradle_wrapper.sh "$GRADLE_VERSION"
+      - name: Restore the Gradle wrapper if it is missing
+        script: |
+          # A no-op in a normal checkout: the wrapper is committed, so `./gradlew` is
+          # already there. It exists for a checkout that lost the binary files — and it
+          # needs no Gradle and no JDK to do its job (tools/ci/ensure_gradle_wrapper.sh).
+          bash tools/ci/ensure_gradle_wrapper.sh "$GRADLE_VERSION"
       - name: Refuse to build a release without the Firebase configuration
         script: |
           if [ -z "${GOOGLE_SERVICES_JSON_BASE64:-}" ]; then

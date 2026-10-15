@@ -166,12 +166,23 @@ Two secrets to create before `android-release` can run:
    The workflow refuses to run without it, rather than shipping an app that cannot sign
    in (that is what a firebase-mode build without the file produces).
 
-**The Gradle wrapper is not committed.** `tools/ci/ensure_gradle_wrapper.sh` generates it
-during the build with whatever Gradle the machine has — the project's own settings need
-Gradle 9.6.0 (AGP 9.4's minimum), while the CI images preinstall 8.14.1, which cannot
-configure this build. Locally, run the same script once
-(`bash tools/ci/ensure_gradle_wrapper.sh 9.6.0`) to get `./gradlew`. Committing the
-wrapper later is fine; the script then does nothing.
+**The Gradle wrapper is committed** (`gradlew`, `gradlew.bat`,
+`gradle/wrapper/gradle-wrapper.jar`, `gradle-wrapper.properties`, pinned to **Gradle
+9.6.0** — AGP 9.4's minimum). Committing it matters here rather than being a nicety: the
+CI images ship Gradle 8.14.1, which cannot configure this build, and generating a
+replacement wrapper needs a JDK that a bare checkout may not have.
+
+If the binary files are ever missing — an over-eager clean, a checkout that skipped them
+— restore them without any Gradle or JDK installed:
+
+```bash
+bash tools/ci/ensure_gradle_wrapper.sh 9.6.0
+```
+
+It downloads the wrapper Gradle publishes in its own repository at the release tag
+(`github.com/gradle/gradle@v9.6.0`), checks that the jar really is the wrapper (a ZIP
+whose manifest names `org.gradle.wrapper.GradleWrapperMain`) before copying anything, and
+writes the properties file if that is gone too. In a normal checkout it does nothing.
 
 **iOS** gets its own workflow when `iosApp/` exists: it needs a macOS instance and the
 Xcode project that XcodeGen generates from `iosApp/project.yml`.

@@ -41,6 +41,13 @@ build/
 */build/
 gradle-app.setting
 .gradletasknamecache
+# The Gradle wrapper is committed on purpose (see docs/SETUP.md §7.1): the CI images
+# ship Gradle 8.14.1, which cannot configure this build, and generating a wrapper needs
+# a JDK that a bare checkout may not have.
+!gradlew
+!gradlew.bat
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
 captures/
 .externalNativeBuild/
 .cxx/
