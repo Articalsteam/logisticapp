@@ -240,13 +240,20 @@ object AttentionReasons {
     const val ManualDistanceReview = "manual_distance_review"
     const val AwaitingFinalAmounts = "awaiting_final_amounts"
     const val UnreportedProblem = "unreported_problem"
+    const val DeliveryFailed = "delivery_failed"
 
+    /**
+     * Fallback copy. Screens call `ArticalsStrings.attentionLabel` so that the wording
+     * lives with the rest of the app's text and can be translated in one place; this is
+     * only used by anything that has no access to the strings object.
+     */
     fun label(reason: String): String = when (reason) {
         Unassigned -> "No rider assigned"
         RiderCostUnconfirmed -> "Rider cost not confirmed"
         ManualDistanceReview -> "Distance entered by hand"
         AwaitingFinalAmounts -> "Final amounts not recorded"
-        UnreportedProblem -> "Delivery failed"
+        UnreportedProblem -> "A rider reported a problem"
+        DeliveryFailed -> "Delivery failed"
         else -> reason
     }
 }

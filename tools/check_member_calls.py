@@ -15,7 +15,7 @@ from pathlib import Path
 
 from importlib.util import module_from_spec, spec_from_file_location
 
-_spec = spec_from_file_location("chk", "/tmp/check_dto_args.py")
+_spec = spec_from_file_location("chk", str(Path(__file__).with_name("check_dto_args.py")))
 chk = module_from_spec(_spec)
 _spec.loader.exec_module(chk)
 mask_comments = chk.mask_comments
@@ -115,7 +115,15 @@ def main() -> int:
             if brace == -1:
                 continue
             inner = brace_body(body, brace)
-            own = set(re.findall(r'\b(?:fun|val|var|const\s+val)\s*(?:<[^>]*>\s*)?([A-Za-z_][A-Za-z0-9_]*)', inner))
+            # Nested objects count as members: `ArticalsStrings.Shell` is a member
+            # of `ArticalsStrings`, and a checker that disagreed would report
+            # hundreds of false problems on every screen.
+            own = set(
+                re.findall(
+                    r'\b(?:fun|val|var|const\s+val|object)\s*(?:<[^>]*>\s*)?([A-Za-z_][A-Za-z0-9_]*)',
+                    inner,
+                )
+            )
             objects.setdefault(m.group(1), set()).update(own)
         for m in re.finditer(r'\bfun\s*(?:<[^>]*>\s*)?([A-Z][A-Za-z0-9_]*)\s*\.\s*([a-z][A-Za-z0-9_]*)', body):
             extensions.setdefault(m.group(1), set()).add(m.group(2))

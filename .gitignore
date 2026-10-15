@@ -80,3 +80,7 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 *.orig
+
+# Python caches from the structural checkers in tools/
+__pycache__/
+*.pyc

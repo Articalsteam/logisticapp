@@ -56,7 +56,7 @@ class DemoControls(
         mutableState.update { it.copy(emptyCompanyLoaded = true, dataVersion = it.dataVersion + 1) }
     }
 
-    override fun setEntitlement(entitlement: String) {
+    override fun setEntitlement(entitlement: String?) {
         commands?.setEntitlementOverride(entitlement)
         mutableState.update { it.copy(entitlementOverride = entitlement, dataVersion = it.dataVersion + 1) }
     }

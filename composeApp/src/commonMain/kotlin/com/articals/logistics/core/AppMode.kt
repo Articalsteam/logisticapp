@@ -55,6 +55,31 @@ data class AppConfig(
     companion object {
         /** Default used by previews and tests. */
         val Demo = AppConfig(AppMode.DEMO, firebaseConfigured = false, allowDiagnostics = true, adminFlavor = true)
+
+        /**
+         * Builds the configuration from what the platform shell knows.
+         *
+         * Each entry point reads its own build system (Android's `BuildConfig`, iOS's
+         * `Info.plist` / xcconfig) and passes the result here, so the rules below are
+         * written once and cannot drift between the two apps.
+         *
+         * The rule worth stating: a Firebase build without configuration is *not*
+         * runnable, and it is never quietly turned into a demo build.
+         */
+        fun fromParts(
+            mode: String?,
+            firebaseConfigured: Boolean,
+            allowDiagnostics: Boolean,
+            adminFlavor: Boolean,
+        ): AppConfig {
+            val resolved = AppMode.fromConfig(mode)
+            return AppConfig(
+                mode = resolved,
+                firebaseConfigured = if (resolved.isFirebase) firebaseConfigured else false,
+                allowDiagnostics = allowDiagnostics && resolved.isDemo,
+                adminFlavor = adminFlavor,
+            )
+        }
     }
 }
 

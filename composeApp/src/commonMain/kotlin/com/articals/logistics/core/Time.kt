@@ -62,6 +62,15 @@ fun isValidTimeZoneId(timeZoneId: String): Boolean =
     runCatching { TimeZone.of(timeZoneId) }.isSuccess
 
 /** Current time. */
+/**
+ * The time zone used when a company has not stated one.
+ *
+ * A company always has one in practice (the backend defaults it too); this exists so
+ * that the interface has an answer during the moment before the company document has
+ * loaded, instead of a blank or a crash.
+ */
+const val DEFAULT_TIME_ZONE = "Africa/Lagos"
+
 fun currentTimeMillis(): Long = Clock.System.now().toEpochMilliseconds()
 
 /** "2026-10-14" in the company's time zone. */

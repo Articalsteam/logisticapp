@@ -148,6 +148,22 @@ object OrderStatus {
     /** The statuses that mean "work still to do". */
     val open: Set<String> = setOf(Pending, Confirmed, Assigned, PickedUp, InTransit)
 
+    /**
+     * The order a dispatcher thinks in: unassigned first, then on the road, then the
+     * finished ones. Used by the "by status" sort so a list reads like a to-do list.
+     */
+    fun sortRank(status: String): Int = when (status) {
+        Pending -> 0
+        Confirmed -> 1
+        Assigned -> 2
+        PickedUp -> 3
+        InTransit -> 4
+        Failed -> 5
+        Delivered -> 6
+        Cancelled -> 7
+        else -> 8
+    }
+
     val active: Set<String> = setOf(PickedUp, InTransit)
 }
 

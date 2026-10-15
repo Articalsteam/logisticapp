@@ -55,9 +55,13 @@ interface InAppNotifications {
 interface DiagnosticsControls {
     val state: StateFlow<DiagnosticsState>
     fun setNetwork(mode: DemoNetworkMode)
+
+    /** How long each simulated call takes, in milliseconds. Zero makes tests instant. */
+    fun setLatency(millis: Long)
     fun forceNextError(error: AppError?)
     fun loadEmptyCompany()
-    fun setEntitlement(entitlement: String)
+    /** Sets an entitlement override, or clears it with null so the data decides again. */
+    fun setEntitlement(entitlement: String?)
     fun reset()
     fun setFontScale(scale: Float)
     fun setDarkMode(enabled: Boolean?)

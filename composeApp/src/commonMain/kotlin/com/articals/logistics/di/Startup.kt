@@ -11,7 +11,7 @@ import org.koin.dsl.module
 /**
  * Start-up shared by both platforms.
  *
- * Three things must happen before any screen can show data:
+ * Four things must happen before any screen can show data:
  *
  *  1. the error mapper for the chosen mode is installed, so a failed call becomes a
  *     message the user can act on rather than a raw SDK exception;
@@ -21,6 +21,9 @@ import org.koin.dsl.module
  *
  * Demo mode never touches Firebase: [firebaseModule] is the only place the SDK
  * handles are created, and it is simply not installed.
+ *
+ * The view models are registered by [uiModule], which both modes share: a screen is
+ * the same screen whether the data under it is simulated or real.
  */
 fun startArticalsLogistics(config: AppConfig, vararg extraModules: Module): KoinApplication {
     if (config.mode.isDemo) {
@@ -33,7 +36,7 @@ fun startArticalsLogistics(config: AppConfig, vararg extraModules: Module): Koin
     val configurationModule = module { single { config } }
 
     return startKoin {
-        modules(modeModule, configurationModule, *extraModules)
+        modules(modeModule, configurationModule, uiModule, *extraModules)
     }
 }
 
