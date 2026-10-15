@@ -128,18 +128,15 @@ workflows:
           else
             set +e
             echo "==================== THIS STEP FAILED ===================="
-            echo "--- Kotlin/Gradle diagnostic lines (e: / w: ) ---"
-            grep -E '^[we]: ' "$log" | head -n 25 || true
             echo "--- Gradle: what went wrong ---"
-            sed -n '/^FAILURE: Build failed/,/^\* Try:/p' "$log" | head -n 40
-            echo "--- Kotlin Multiplatform tasks that exist in :composeApp ---"
-            ./gradlew --console=plain -q :composeApp:tasks --all 2>/dev/null \
-              | grep -iE 'metadata' | head -n 25 || true
-            echo "--- last 40 lines of the raw log ---"
-            tail -n 40 "$log"
-            echo "--- the message again, so it survives the last-50-lines view ---"
-            sed -n '/^\* What went wrong:/,+12p' "$log"
-            grep -E '^e: ' "$log" | head -n 8 || true
+            sed -n '/^FAILURE: Build failed/,/^\* Try:/p' "$log" | head -n 30
+            echo "--- errors per file ---"
+            grep -E '^e: ' "$log" | sed 's|^e: ||; s|file:///[^ ]*/clone/||' | cut -d: -f1 \
+              | sort | uniq -c | sort -rn | head -n 15 || true
+            printf 'total error lines: %s\n' "$(grep -c '^e: ' "$log")"
+            printf 'warning lines: %s\n' "$(grep -c '^w: ' "$log")"
+            echo "--- ALL Kotlin errors, last so they survive the 50-line view ---"
+            grep -E '^e: ' "$log" | sed 's|file:///[^ ]*/clone/||' | head -n 45 || true
             echo "==================== END OF FAILURE ======================"
             exit 1
           fi
