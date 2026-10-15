@@ -36,6 +36,43 @@ object ExpenseKind {
     const val Operating = "operating"
 }
 
+/** What a rider rides. The backend accepts exactly these. */
+object VehicleTypes {
+    const val Motorcycle = "motorcycle"
+    const val Bicycle = "bicycle"
+    const val Car = "car"
+    const val Van = "van"
+    const val Truck = "truck"
+    const val Other = "other"
+
+    val all: List<String> = listOf(Motorcycle, Bicycle, Car, Van, Truck, Other)
+
+    fun label(type: String): String = when (type) {
+        Motorcycle -> "Motorcycle"
+        Bicycle -> "Bicycle"
+        Car -> "Car"
+        Van -> "Van"
+        Truck -> "Truck"
+        else -> "Other"
+    }
+}
+
+/** What a rider's record can be. `inactive` is someone who stopped working with you. */
+object RiderStatuses {
+    const val Active = "active"
+    const val Inactive = "inactive"
+    const val Suspended = "suspended"
+
+    val all: List<String> = listOf(Active, Inactive, Suspended)
+
+    fun label(status: String): String = when (status) {
+        Active -> "Active"
+        Inactive -> "Not working with you"
+        Suspended -> "Suspended"
+        else -> status
+    }
+}
+
 object BypassReasons {
     val all: List<String> = listOf(
         "offline_payment_pending",
@@ -83,21 +120,27 @@ object ReportTypes {
     }
 }
 
-/** Pricing methods a company can choose. */
+/**
+ * Pricing methods a company can choose.
+ *
+ * The list and the strings are the backend's `PRICING_METHODS` exactly. There are four,
+ * and `zone_based` is the backend's spelling — a company that saved "zone_to_zone" or
+ * "flat_rate" would be storing a method the pricing engine cannot price, so those
+ * names do not exist here at all. A single flat price is a distance band with one
+ * open-ended band, which the distance-band method already expresses.
+ */
 object PricingMethods {
     const val BasePlusDistance = "base_plus_distance"
     const val DistanceBands = "distance_bands"
-    const val ZoneToZone = "zone_to_zone"
-    const val FlatRate = "flat_rate"
+    const val ZoneBased = "zone_based"
     const val Hybrid = "hybrid"
 
-    val all: List<String> = listOf(BasePlusDistance, DistanceBands, ZoneToZone, FlatRate, Hybrid)
+    val all: List<String> = listOf(BasePlusDistance, DistanceBands, ZoneBased, Hybrid)
 
     fun label(method: String): String = when (method) {
         BasePlusDistance -> "Base charge + distance"
         DistanceBands -> "Distance bands"
-        ZoneToZone -> "Zone to zone"
-        FlatRate -> "Flat rate"
+        ZoneBased -> "Zone to zone"
         Hybrid -> "Hybrid (base + distance + bands)"
         else -> method
     }
@@ -105,8 +148,7 @@ object PricingMethods {
     fun help(method: String): String = when (method) {
         BasePlusDistance -> "A fixed base charge plus a rate per kilometre."
         DistanceBands -> "A fixed charge per distance range, e.g. 0–3 km, 3–7 km, 7 km and beyond."
-        ZoneToZone -> "A charge per pickup→destination zone pair, for companies that price by area."
-        FlatRate -> "One charge regardless of distance."
+        ZoneBased -> "A charge per pickup→destination zone pair, for companies that price by area."
         Hybrid -> "Base charge, per-kilometre rate and distance bands combined."
         else -> ""
     }
@@ -135,12 +177,16 @@ object RiderCostMethods {
 }
 
 object RoundingModes {
-    val all: List<String> = listOf("nearest", "up", "down")
+    const val Nearest = "nearest"
+    const val Up = "up"
+    const val Down = "down"
+
+    val all: List<String> = listOf(Nearest, Up, Down)
 
     fun label(mode: String): String = when (mode) {
-        "nearest" -> "Nearest"
-        "up" -> "Always up"
-        "down" -> "Always down"
+        Nearest -> "Nearest"
+        Up -> "Always up"
+        Down -> "Always down"
         else -> mode
     }
 }

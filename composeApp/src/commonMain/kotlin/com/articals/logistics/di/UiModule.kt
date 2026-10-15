@@ -10,9 +10,16 @@ import com.articals.logistics.ui.screen.dashboard.DashboardViewModel
 import com.articals.logistics.ui.screen.notifications.NotificationsViewModel
 import com.articals.logistics.ui.screen.orders.OrderDetailViewModel
 import com.articals.logistics.ui.screen.onboarding.OnboardingViewModel
+import com.articals.logistics.ui.screen.customers.CustomerDetailViewModel
+import com.articals.logistics.ui.screen.customers.CustomersViewModel
+import com.articals.logistics.ui.screen.expenses.ExpensesViewModel
 import com.articals.logistics.ui.screen.orders.OrdersViewModel
 import com.articals.logistics.ui.screen.pricing.CalculatorViewModel
 import com.articals.logistics.ui.screen.pricing.QuotesViewModel
+import com.articals.logistics.ui.screen.pricingsettings.PricingSettingsViewModel
+import com.articals.logistics.ui.screen.riders.RiderDetailViewModel
+import com.articals.logistics.ui.screen.riders.RidersViewModel
+import com.articals.logistics.ui.screen.tracking.TrackingViewModel
 import com.articals.logistics.ui.screen.rider.RiderHomeViewModel
 import com.articals.logistics.ui.screen.rider.RiderJobViewModel
 import com.articals.logistics.ui.screen.workspace.CompanySetupViewModel
@@ -66,6 +73,17 @@ val uiModule: Module = module {
         )
     }
     viewModel { QuotesViewModel(pricing = get()) }
+
+    // --- The customer book and the roster ----------------------------------
+    viewModel { CustomersViewModel(customers = get(), orders = get()) }
+    viewModel { CustomerDetailViewModel(customers = get(), orders = get()) }
+    viewModel { RidersViewModel(riders = get()) }
+    viewModel { RiderDetailViewModel(riders = get(), orders = get()) }
+
+    // --- Money and rates ---------------------------------------------------
+    viewModel { ExpensesViewModel(expenses = get()) }
+    viewModel { PricingSettingsViewModel(pricing = get()) }
+    viewModel { TrackingViewModel(tracking = get()) }
 
     // --- The rider's own screens -------------------------------------------
     viewModel { RiderHomeViewModel(orders = get(), riders = get()) }

@@ -270,13 +270,18 @@ object DemoSeed {
             "$secondaryTenantId-pricing" to PricingConfigDto(
                 id = "$secondaryTenantId-pricing",
                 tenantId = secondaryTenantId,
-                name = "Placeholder flat rate",
+                name = "Flat city rate",
                 isActive = true,
                 version = 1,
                 currency = "NGN",
-                method = PricingMethods.FlatRate,
+                // One price for any distance: a single open-ended band. The engine has
+                // no separate "flat rate" method, and this is exactly what one means.
+                method = PricingMethods.DistanceBands,
                 baseChargeMinor = 120_000,
                 perKmRateMinor = 0,
+                distanceBands = listOf(
+                    DistanceBandDto(upToMetres = null, chargeMinor = 120_000, label = "Any distance in the city"),
+                ),
                 fallbackToDistanceWhenZoneMissing = false,
                 minimumChargeMinor = 120_000,
                 roundingIncrementMinor = 0,

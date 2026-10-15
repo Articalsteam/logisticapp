@@ -194,6 +194,168 @@ object ArticalsStrings {
             "Create your first delivery, or invite your riders so they can see their jobs on their own phones."
     }
 
+    /**
+     * Customers.
+     *
+     * Plurals are written as functions rather than templates so a language that
+     * inflects differently has somewhere to do it: `ordersCount(1)` is the place a
+     * translator changes the whole sentence, not the word "orders".
+     */
+    object Customers {
+        const val subtitle = "Everyone you deliver for, in one list."
+        const val search = "Search by name, phone or email"
+        const val activeChipLabel = "Active"
+        const val archivedChipLabel = "Archived"
+        fun activeChip(count: Int) = "Active ($count)"
+        fun archivedChip(count: Int) = "Archived ($count)"
+        fun ordersCount(count: Int) = if (count == 1) "1 delivery" else "$count deliveries"
+        const val archiveConfirm = "Archive"
+        const val restore = "Restore"
+        const val editTitle = "Edit customer"
+        fun archiveTitle(name: String) = "Archive $name?"
+        const val archiveBody =
+            "They stay on the deliveries they already have, and stop appearing when you create a new one."
+        fun archived(name: String) = "$name was archived"
+        fun restored(name: String) = "$name is active again"
+        const val added = "Customer added"
+        const val saved = "Customer saved"
+        fun incomplete() = "A name and a phone number are needed before this can be saved."
+        const val noMatches = "Nothing matches that search"
+        const val noMatchesBody = "Try part of a name, a phone number or an email address."
+        const val notFound = "That customer was not found in this workspace."
+        const val customerSince = "Customer since"
+        const val history = "What we have done for them"
+        const val deliveries = "Deliveries"
+        const val charged = "Charged in total"
+        const val notes = "Notes"
+        const val noOrders = "No deliveries yet"
+        const val noOrdersBody = "When you create a delivery for them, it appears here."
+    }
+
+    /**
+     * Riders.
+     *
+     * The wording keeps the record and the login apart: a rider exists as a person to
+     * assign work to, and separately may have an account. Saying "invited" for the
+     * first would be a lie, so the invite copy only ever claims a link was created.
+     */
+    object Riders {
+        const val subtitle = "The people who carry your deliveries, and what they have ridden."
+        const val search = "Search by name, phone or email"
+        fun activeChip(count: Int) = "Working with you ($count)"
+        fun inactiveChip(count: Int) = "Inactive ($count)"
+        fun deliveredCount(count: Int) = if (count == 1) "1 delivery" else "$count deliveries"
+        const val editTitle = "Edit rider"
+        const val status = "Working status"
+        const val plate = "Plate number"
+        const val emailExplain = "An email address is what a rider signs in with."
+        const val added = "Rider added"
+        const val saved = "Rider saved"
+        fun statusChanged(name: String) = "$name's status was changed"
+        const val incomplete = "A name and a phone number are needed before this can be saved."
+        const val noMatches = "Nothing matches that search"
+        const val noMatchesBody = "Try part of a name, a phone number or an email address."
+        const val notFound = "That rider was not found in this workspace."
+        fun inviteTitle(name: String) = "Give $name a login"
+        const val inviteBody =
+            "Articals makes a one-time link. You send it however you like — Articals does not send it for you."
+        const val inviteEmailInvalid = "That does not look like an email address."
+        const val inviteReady = "Invitation ready to send"
+        const val inviteLink = "The link to send"
+        const val totals = "How they are doing"
+        const val delivered = "Delivered"
+        const val openJobs = "On the road now"
+        const val failed = "Failed"
+        const val paidToRider = "Paid to this rider"
+        const val rating = "Rating"
+        const val noJobs = "No deliveries yet"
+        const val noJobsBody = "Assign a delivery to this rider and it appears here."
+    }
+
+    /**
+     * Expenses.
+     *
+     * The split between running costs and delivery costs is the backend's own split, so
+     * the words match what the reports will say.
+     */
+    object Expenses {
+        const val subtitle = "Fuel, rent, salaries and everything else the company spends."
+        const val totals = "This period"
+        const val total = "Everything together"
+        const val kind = "What kind of cost is it?"
+        const val description = "More detail (optional)"
+        const val dateFormat = "YYYY-MM-DD"
+        const val dateInvalid = "Use the YYYY-MM-DD order, for example 2026-03-14."
+        const val amountInvalid = "That is not an amount."
+        const val orderId = "Which delivery?"
+        const val orderIdExplain = "A delivery cost has to name the delivery it belongs to."
+        const val added = "Expense recorded"
+        const val deleted = "Expense removed"
+        const val incomplete = "An amount above zero and a date are needed before this can be saved."
+        const val deleteTitle = "Remove this expense?"
+        fun deleteBody(amount: String, category: String) =
+            "Removing the $category expense of $amount keeps it in the audit log, so the books still show what happened."
+        const val deleteReasonRequired = "A reason is needed: removing an expense is recorded."
+    }
+
+    /**
+     * The company's own rate card.
+     *
+     * Every refusal here is worded as the server words it, because they are the same
+     * rule: an open-ended band, two bands ending at the same distance, a zone method
+     * with no zones, a rider method with nothing to cost with.
+     */
+    object PricingSettings {
+        const val title = "Rates"
+        const val subtitle = "What you charge, and what you pay the rider. Saved as a new version each time."
+        const val versionLabel = "Version"
+        const val name = "What to call these rates"
+        const val missing = "This company has no rate card yet. Contact Articals Studio if that is unexpected."
+        const val savedWithVersion = "Rates saved as a new version"
+        const val saveFailed = "The rates could not be saved"
+        const val discard = "Discard changes"
+        const val unsaved = "You have changes that are not saved yet."
+        const val problemsTitle = "Before these rates can be saved"
+        const val nameRequired = "Give the rate card a name."
+        const val methodTitle = "How you calculate a price"
+        const val bandsRequired = "Distance-band pricing needs at least one band."
+        const val zoneRulesRequired = "Area-to-area pricing needs at least one area price."
+        const val perKmRequired = "This method needs a rate per kilometre above zero."
+        const val maximumBelowMinimum = "The maximum charge cannot be below the minimum charge."
+        const val roundingTooLarge = "The rounding step has to be ₦1,000 or less."
+        const val marginTooHigh = "The target margin has to be below 100%."
+        const val bandsLabel = "distance bands"
+        const val riderBandsLabel = "rider distance bands"
+        fun multipleCatchAll(label: String) = "Only one of the $label may be open-ended."
+        fun duplicateBounds(label: String) = "Two $label end at the same distance."
+        fun bandIncomplete(label: String) = "Every one of the $label needs an amount, and a distance unless it is open-ended."
+        const val riderRateRequired = "Distance-rate rider costing needs a rate per kilometre."
+        const val riderBandsRequired = "Distance-band rider costing needs at least one band."
+        const val riderZonesRequired = "Area-based rider costing needs at least one area price."
+        const val riderFixedRequired = "A fixed rider fee needs the fee itself."
+        const val riderHistoryRequired = "A historical average needs a number; record completed deliveries first."
+        const val surchargeLabelRequired = "Every surcharge needs a name."
+        fun surchargeAmountRequired(label: String) = "The surcharge \"$label\" needs an amount above zero."
+        fun surchargePercentRequired(label: String) = "The surcharge \"$label\" needs a percentage above zero."
+        const val openEndedBand = "Open-ended (anything further)"
+        const val addArea = "Add an area price"
+        const val areaFrom = "From"
+        const val areaTo = "To"
+        const val kind = "Fixed or percentage"
+        const val serviceLevelsHint = "Leave empty to apply to every kind of delivery."
+        const val targetProfit = "What profit are you aiming for?"
+        const val targetProfitExplain =
+            "Optional. A target is advice: the app says when a delivery misses it, and never refuses a price for missing it."
+        const val zoneMissingFallback = "If there is no price for an area pair"
+        const val useDistanceInstead = "Fall back to the distance rate"
+        const val refuseInstead = "Refuse the price and ask"
+        const val versioningNote =
+            "A saved rate card is a version. Deliveries already quoted keep the price they were quoted at."
+        const val riderCostMethod = "How you work out what to pay the rider"
+        const val riderMinimumCost = "Never pay less than"
+        const val riderHistoricalAverage = "Average from recent deliveries"
+    }
+
     object Pricing {
         const val title = "Price calculator"
         const val subtitle = "Every figure below comes from your own rate card."
@@ -391,6 +553,7 @@ object ArticalsStrings {
         const val track = "Track"
         const val lookupBody = "Share the reference with the customer, or search it here on their behalf."
         const val notFoundTitle = "No delivery with that reference"
+        const val notFound = "No delivery with that reference"
         const val notFoundBody =
             "Check the reference. If it still does not work, ask the company that is making the delivery."
         const val currentStatus = "Where your delivery is now"
@@ -587,7 +750,9 @@ object ArticalsStrings {
         const val pricingMethodBase = "Base charge plus a rate per kilometre"
         const val pricingMethodBands = "Distance bands"
         const val pricingMethodZones = "Area to area"
-        const val pricingMethodFlat = "One flat rate"
+        const val flatRateHint =
+            "For one price whatever the distance, use distance bands and a single band with no upper limit."
+
         const val pricingMethodHybrid = "A mix of the above"
         const val baseCharge = "Base charge"
         const val perKm = "Charge per kilometre"

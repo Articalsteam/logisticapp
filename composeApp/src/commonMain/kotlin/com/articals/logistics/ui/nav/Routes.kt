@@ -33,7 +33,9 @@ object Routes {
     const val Calculator = "calculator?quoteId={quoteId}"
     const val Quotes = "quotes"
     const val Customers = "customers"
+    const val CustomerDetail = "customers/{customerId}"
     const val Riders = "riders"
+    const val RiderDetail = "riders/{riderId}"
     const val Expenses = "expenses"
     const val Reports = "reports"
     const val Settings = "settings"
@@ -61,6 +63,10 @@ object Routes {
     // --- builders ---------------------------------------------------------
     fun order(orderId: String) = "orders/$orderId"
 
+    fun customer(customerId: String) = "customers/$customerId"
+
+    fun rider(riderId: String) = "riders/$riderId"
+
     fun riderJob(orderId: String) = "rider/$orderId"
 
     fun riderProblem(orderId: String) = "rider/$orderId/problem"
@@ -77,6 +83,8 @@ object Routes {
 
     /** The argument names used by the graph, so builders and patterns cannot drift. */
     const val ArgQuoteId = "quoteId"
+    const val ArgCustomerId = "customerId"
+    const val ArgRiderId = "riderId"
     const val ArgOrderId = "orderId"
     const val ArgTenantId = "tenantId"
 
@@ -94,7 +102,7 @@ object Routes {
         return when (base) {
             // Anyone signed in, whatever their role.
             Dashboard, Orders, OrderDetail, NewOrder, Calculator, Quotes,
-            Customers, Riders, Expenses, Reports, Settings, CompanySettings,
+            Customers, CustomerDetail, Riders, RiderDetail, Expenses, Reports, Settings, CompanySettings,
             PricingSettings, Team, Subscription, Notifications, Onboarding,
             Workspaces, NoCompany, Tracking, AdoptInvitation,
             -> role != null && role != Roles.Rider

@@ -73,15 +73,6 @@ class DemoQuoteSimulator(
         var distanceFallbackReason: String? = null
 
         when (config.method) {
-            "flat_rate" -> {
-                lines += QuoteLineDto(
-                    code = "base",
-                    label = "Flat delivery charge",
-                    amountMinor = config.baseChargeMinor,
-                )
-                linesTotal += config.baseChargeMinor
-            }
-
             "distance_bands" -> {
                 val band = matchingBand(config.distanceBands, metres)
                 if (band == null) {
@@ -100,7 +91,7 @@ class DemoQuoteSimulator(
                 linesTotal += band.chargeMinor
             }
 
-            "zone_to_zone" -> {
+            "zone_based" -> {
                 val rule = matchingZoneRule(config.zoneRules, request.pickup.zoneId, request.destination.zoneId)
                 if (rule == null) {
                     if (config.fallbackToDistanceWhenZoneMissing) {

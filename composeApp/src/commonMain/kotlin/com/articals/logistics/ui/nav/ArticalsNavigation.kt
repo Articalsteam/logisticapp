@@ -56,8 +56,15 @@ import com.articals.logistics.ui.screen.notifications.NotificationsScreen
 import com.articals.logistics.ui.screen.onboarding.OnboardingScreen
 import com.articals.logistics.ui.screen.orders.OrderDetailScreen
 import com.articals.logistics.ui.screen.orders.OrdersScreen
+import com.articals.logistics.ui.screen.customers.CustomerDetailScreen
+import com.articals.logistics.ui.screen.customers.CustomersScreen
+import com.articals.logistics.ui.screen.expenses.ExpensesScreen
 import com.articals.logistics.ui.screen.pricing.CalculatorScreen
 import com.articals.logistics.ui.screen.pricing.QuotesScreen
+import com.articals.logistics.ui.screen.pricingsettings.PricingSettingsScreen
+import com.articals.logistics.ui.screen.riders.RiderDetailScreen
+import com.articals.logistics.ui.screen.riders.RidersScreen
+import com.articals.logistics.ui.screen.tracking.TrackingScreen
 import com.articals.logistics.ui.screen.rider.RiderHomeScreen
 import com.articals.logistics.ui.screen.rider.RiderJobScreen
 import com.articals.logistics.ui.screen.settings.SettingsScreen
@@ -293,6 +300,115 @@ fun ArticalsNavigation(
                     }
                 }
 
+                composable(Routes.Customers) {
+                    Guarded(navController = navController, state = state, route = Routes.Customers) {
+                        val tenantId = state.activeTenantId
+                        if (tenantId == null) {
+                            NoAccessScreen(onBack = { navController.popBackStack() })
+                        } else {
+                            CustomersScreen(
+                                tenantId = tenantId,
+                                currency = state.currency,
+                                permissions = state.permissions,
+                                onOpenCustomer = { customerId ->
+                                    navController.navigate(Routes.customer(customerId))
+                                },
+                            )
+                        }
+                    }
+                }
+
+                composable(Routes.CustomerDetail) { entry ->
+                    Guarded(navController = navController, state = state, route = Routes.CustomerDetail) {
+                        val tenantId = state.activeTenantId
+                        val customerId = entry.arguments?.getString(Routes.ArgCustomerId)
+                        if (tenantId == null || customerId.isNullOrBlank()) {
+                            NoAccessScreen(onBack = { navController.popBackStack() })
+                        } else {
+                            CustomerDetailScreen(
+                                tenantId = tenantId,
+                                customerId = customerId,
+                                currency = state.currency,
+                                timeZoneId = state.zoneId,
+                                onOpenOrder = { orderId -> navController.navigate(Routes.order(orderId)) },
+                                onBack = { navController.popBackStack() },
+                            )
+                        }
+                    }
+                }
+
+                composable(Routes.Riders) {
+                    Guarded(navController = navController, state = state, route = Routes.Riders) {
+                        val tenantId = state.activeTenantId
+                        if (tenantId == null) {
+                            NoAccessScreen(onBack = { navController.popBackStack() })
+                        } else {
+                            RidersScreen(
+                                tenantId = tenantId,
+                                currency = state.currency,
+                                permissions = state.permissions,
+                                onOpenRider = { riderId -> navController.navigate(Routes.rider(riderId)) },
+                            )
+                        }
+                    }
+                }
+
+                composable(Routes.RiderDetail) { entry ->
+                    Guarded(navController = navController, state = state, route = Routes.RiderDetail) {
+                        val tenantId = state.activeTenantId
+                        val riderId = entry.arguments?.getString(Routes.ArgRiderId)
+                        if (tenantId == null || riderId.isNullOrBlank()) {
+                            NoAccessScreen(onBack = { navController.popBackStack() })
+                        } else {
+                            RiderDetailScreen(
+                                tenantId = tenantId,
+                                riderId = riderId,
+                                currency = state.currency,
+                                onOpenOrder = { orderId -> navController.navigate(Routes.order(orderId)) },
+                                onBack = { navController.popBackStack() },
+                            )
+                        }
+                    }
+                }
+
+                composable(Routes.Expenses) {
+                    Guarded(navController = navController, state = state, route = Routes.Expenses) {
+                        val tenantId = state.activeTenantId
+                        if (tenantId == null) {
+                            NoAccessScreen(onBack = { navController.popBackStack() })
+                        } else {
+                            ExpensesScreen(
+                                tenantId = tenantId,
+                                currency = state.currency,
+                                zoneId = state.zoneId,
+                                permissions = state.permissions,
+                            )
+                        }
+                    }
+                }
+
+                composable(Routes.PricingSettings) {
+                    Guarded(navController = navController, state = state, route = Routes.PricingSettings) {
+                        val tenantId = state.activeTenantId
+                        if (tenantId == null) {
+                            NoAccessScreen(onBack = { navController.popBackStack() })
+                        } else {
+                            PricingSettingsScreen(
+                                tenantId = tenantId,
+                                currency = state.currency,
+                                serviceAreas = state.company?.serviceAreas.orEmpty(),
+                                permissions = state.permissions,
+                            )
+                        }
+                    }
+                }
+
+                composable(Routes.Tracking) {
+                    Guarded(navController = navController, state = state, route = Routes.Tracking) {
+                        TrackingScreen(timeZoneId = state.zoneId)
+                    }
+                }
+
                 composable(Routes.Settings) {
                     SettingsScreen(
                         signedInAs = state.user?.email,
@@ -302,6 +418,20 @@ fun ArticalsNavigation(
                         canSwitchCompany = state.memberships.size > 1,
                         currency = state.currency,
                         onOpenNotifications = { navController.navigate(Routes.Notifications) },
+                        onOpenCustomers = { navController.navigate(Routes.Customers) },
+                        onOpenRiders = { navController.navigate(Routes.Riders) },
+                        onOpenPricing = { navController.navigate(Routes.PricingSettings) },
+                        onOpenExpenses = { navController.navigate(Routes.Expenses) },
+                        onOpenTracking = { navController.navigate(Routes.Tracking) },
+                        onOpenReports = { navController.navigate(Routes.Reports) },
+                        onOpenCompanySettings = { navController.navigate(Routes.CompanySettings) },
+                        onOpenTeam = { navController.navigate(Routes.Team) },
+                        onOpenSubscription = { navController.navigate(Routes.Subscription) },
+                        onOpenConsole = if (state.canOpenConsole) {
+                            { navController.navigate(Routes.AdminOverview) }
+                        } else {
+                            null
+                        },
                         onSwitchCompany = { navController.navigate(Routes.Workspaces) },
                         onOpenDemoControls = if (config.allowDiagnostics) {
                             { demoPanelOpen = true }
