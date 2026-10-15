@@ -1,6 +1,5 @@
 package com.articals.logistics.data.dto
 
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -50,6 +49,8 @@ data class CompanyDto(
     val publicTracking: PublicTrackingSettingsDto? = null,
     val createdAt: String? = null,
     val updatedAt: String? = null,
+    /** uid of whoever created the company; written by the backend only. */
+    val createdBy: String? = null,
 )
 
 @Serializable
@@ -397,6 +398,8 @@ data class OrderDto(
     val assignedRiderId: String? = null,
     val riderSnapshot: RiderSnapshotDto? = null,
     val distance: QuoteDistanceDto? = null,
+    /** Copied from the accepted quote: how this delivery's price was calculated. */
+    val pricingSnapshot: PricingSnapshotDto = PricingSnapshotDto(),
     val customerChargeMinor: Long = 0,
     val estimatedCustomerChargeMinor: Long = 0,
     val estimatedRiderCostMinor: Long = 0,
@@ -554,12 +557,14 @@ data class DashboardMetricsDto(
 @Serializable
 data class ReportExportDto(
     val fileName: String = "",
-    /** Null when Cloud Storage was unavailable — the app then shares the inline preview. */
+    /** Null when Cloud Storage was unavailable — the app then shares the inline CSV. */
     val storagePath: String? = null,
     val downloadUrl: String? = null,
     val rowCount: Int = 0,
     val truncated: Boolean = false,
     val generatedAt: String? = null,
+    /** Set by modes that have no Cloud Storage (demo), so the share sheet has content. */
+    val inlineCsv: String? = null,
 )
 
 @Serializable
@@ -666,6 +671,91 @@ data class AckDto(
     val expenseId: String? = null,
     val daysRebuilt: Int? = null,
     val ordersScanned: Int? = null,
+)
+
+// ---------------------------------------------------------------------------
+// Shared reads that both modes serve
+// ---------------------------------------------------------------------------
+
+/** A quote saved from the calculator, for the quote history and the order trail. */
+@Serializable
+data class SavedQuoteDto(
+    val id: String = "",
+    val orderId: String? = null,
+    val createdBy: String? = null,
+    val createdAt: String? = null,
+    val pickup: OrderLocationDto = OrderLocationDto(),
+    val destination: OrderLocationDto = OrderLocationDto(),
+    val serviceLevel: String = "standard",
+    val distance: QuoteDistanceDto? = null,
+    val recommendedCustomerChargeMinor: Long = 0,
+    val estimatedRiderCost: RiderCostEstimateDto = RiderCostEstimateDto(),
+    val estimatedAdditionalDeliveryCostsMinor: Long = 0,
+    val estimatedProfitMinor: Long = 0,
+    val estimatedMarginBps: Int = 0,
+    val warnings: List<QuoteWarningDto> = emptyList(),
+) {
+    val reference: String get() = id.take(8).uppercase()
+}
+
+/** One audit log entry. Server-only in Firebase mode; see ADR-014. */
+@Serializable
+data class AuditEntryDto(
+    val id: String = "",
+    val tenantId: String? = null,
+    val actorUserId: String? = null,
+    val actorRole: String? = null,
+    val action: String = "",
+    val resourceType: String? = null,
+    val resourceId: String? = null,
+    val reason: String? = null,
+    val metadata: Map<String, String> = emptyMap(),
+    val timestamp: String? = null,
+)
+
+/** One billing ledger entry: a recorded offline payment or a bypass grant. */
+@Serializable
+data class LedgerEntryDto(
+    val id: String = "",
+    val type: String = "",
+    val amountMinor: Long = 0,
+    val currency: String = "NGN",
+    val recordedBy: String? = null,
+    val reason: String? = null,
+    val externalReference: String? = null,
+    val periodStart: String? = null,
+    val periodEnd: String? = null,
+    val createdAt: String? = null,
+)
+
+/** An in-app notification. `simulated` is true only for demo notifications. */
+@Serializable
+data class AppNotificationDto(
+    val id: String = "",
+    val title: String = "",
+    val body: String = "",
+    val at: String? = null,
+    val simulated: Boolean = false,
+    val read: Boolean = false,
+)
+
+/** An address suggestion. Never carries a distance: that is the backend's job. */
+@Serializable
+data class PlaceSuggestionDto(
+    val label: String = "",
+    val address: String = "",
+    val area: String? = null,
+    val zoneId: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val simulated: Boolean = false,
+)
+
+/** Shape of `platformConfig/plans`, which the rules let any signed-in user read. */
+@Serializable
+data class PlatformPlansDoc(
+    val plans: List<PlanDto> = emptyList(),
+    val updatedAt: String? = null,
 )
 
 // ---------------------------------------------------------------------------

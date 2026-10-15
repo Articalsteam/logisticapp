@@ -82,6 +82,13 @@ sealed class AppError(
         override val isEntitlementBlock = true
     }
 
+    /**
+     * The capability exists in the product but not in this configuration — for
+     * example an administrative read the client is not allowed to perform at all.
+     * Retrying will not help, so the UI offers an explanation instead of a retry.
+     */
+    class Unsupported(detail: String, message: String) : AppError(message, detail)
+
     class RateLimited(cause: Throwable? = null) : AppError(
         "Too many attempts. Please wait a moment and try again.",
         detail = "resource_exhausted",

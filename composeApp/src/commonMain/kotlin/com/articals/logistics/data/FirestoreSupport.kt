@@ -27,6 +27,13 @@ inline fun <reified T> FirebaseFirestore.documentFlow(path: String): Flow<T?> {
     }
 }
 
+/** Reads a document once, or null when it does not exist. */
+inline suspend fun <reified T> FirebaseFirestore.readDocument(path: String): T? {
+    val strategy = serializer<T>()
+    val snapshot = document(path).get()
+    return if (snapshot.exists) snapshot.data(strategy) else null
+}
+
 /** Emits the documents matched by this query, giving each DTO its Firestore id. */
 inline fun <reified T> Query.observeDocuments(crossinline withId: (String, T) -> T): Flow<List<T>> {
     val strategy = serializer<T>()
@@ -56,6 +63,10 @@ object FirestorePaths {
     fun customer(customerId: String): String = "customers/$customerId"
     fun expense(expenseId: String): String = "expenses/$expenseId"
     fun quote(quoteId: String): String = "quotes/$quoteId"
+    /** Plan catalogue, readable by any signed-in user per the security rules. */
+    const val platformPlans = "platformConfig/plans"
+    const val platformSettings = "platformConfig/settings"
+
     fun reportPath(tenantId: String, fileName: String): String = "reports/$tenantId/$fileName"
     fun companyLogoPath(tenantId: String, fileName: String): String = "logo/$tenantId/$fileName"
     fun proofPath(tenantId: String, orderId: String, fileName: String): String =

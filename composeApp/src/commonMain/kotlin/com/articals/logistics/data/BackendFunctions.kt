@@ -49,6 +49,8 @@ object BackendFunctions {
     // Insights
     const val getCompanyDashboardMetrics = "getCompanyDashboardMetrics"
     const val rebuildDailyRollups = "rebuildDailyRollups"
+    /** Built server-side and written to Cloud Storage; the app only downloads it. */
+    const val exportCompanyReport = "exportCompanyReport"
 
     // Public tracking
     const val getPublicTracking = "getPublicTracking"
