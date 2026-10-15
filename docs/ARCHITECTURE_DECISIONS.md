@@ -99,8 +99,8 @@ forbidden.
 ## ADR-006 — Android and iOS only; API levels chosen for the pilot fleet
 
 **Decision.** Targets are `androidTarget` (minSdk 26, compileSdk/targetSdk 37 — the
-maximum AGP 9.4 supports) and `iosArm64`/`iosSimulatorArm64`/`iosX64` with a
-deployment target of iOS 16. No desktop, no web client.
+maximum AGP 9.4 supports) and `iosArm64`/`iosSimulatorArm64` with a deployment
+target of iOS 16 (`iosX64` was dropped in ADR-015). No desktop, no web client.
 
 **Why.** The MVP is used by dispatchers on Android phones and riders on a mix of
 Android devices, with iOS for owners. minSdk 26 covers the phones riders actually
@@ -296,3 +296,40 @@ in for "denied"; administrative writes from the app that bypass a callable.
 for everything that changes state in FIREBASE mode, but its two read-only history
 panels are explicitly shown as unavailable in FIREBASE mode until a dedicated
 administrative report callable is added.
+
+---
+
+## ADR-015 — iOS targets: device arm64 and Apple-silicon simulator, no Intel simulator
+
+**Decision.** `:composeApp` targets `iosArm64()` and `iosSimulatorArm64()` only.
+`iosX64()` — the Intel-Mac simulator — is not a target, so `iosSimulatorArm64Test` is
+the only iOS test binary this project builds. The deployment target stays iOS 16. This
+supersedes the target list in ADR-006 on that one point.
+
+**Why.** Compose Multiplatform 1.12.x publishes no `iosX64` artifacts, and a module that
+uses Compose cannot have a target without it. Maven Central, read 2026-10-15:
+`org/jetbrains/compose/runtime/runtime-iosx64/` lists exactly one version,
+`1.11.0-alpha01`, while `runtime-iosarm64/` lists `1.12.1` (and `1.12.2`). The third
+`android-checks` run made the consequence concrete — the metadata classpath for `iosX64`
+could never resolve:
+
+```
+Could not resolve all files for configuration ':composeApp:iosX64CompilationDependenciesMetadata'
+> Could not resolve org.jetbrains.compose.runtime:runtime:1.12.1.
+  > No matching variant ... the consumer needed ... 'org.jetbrains.kotlin.native.target'
+    with value 'ios_x64'
+```
+
+The other multiplatform dependencies do publish it (`dev.gitlive:firebase-auth-iosx64`,
+`io.insert-koin:koin-core-iosx64`, `io.coil-kt.coil3:coil-compose-iosx64` all exist), so
+this is Compose's limit and not the ecosystem's.
+
+**Ruled out.** Keeping `iosX64` "for completeness" — it cannot compile without Compose,
+so it would fail every build until Compose publishes it again. Downgrading Compose to
+`1.11.0-alpha01` to keep an Intel simulator, trading a stable UI library for a machine
+that neither the pilot's users nor the CI runner have.
+
+**Consequence to be aware of.** The iOS app cannot be built or run on an Intel Mac's
+simulator. On the CI instance (`mac_mini_m2`) and any Apple-silicon Mac nothing changes,
+and an Intel Mac can still build for a real device (`iosArm64`), which is what a pilot
+test on hardware would use anyway.

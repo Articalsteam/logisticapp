@@ -24,6 +24,7 @@ commands in §4 have been run on a machine with the Android SDK and Xcode.
 | Codemagic workflows | `codemagic.yaml` (three workflows) | **Run at last.** `android-checks` now reaches Gradle (see the two rows below); the workflow itself no longer fails on configuration or on the wrapper. |
 | **Gradle 9.6.0 runs on Codemagic** | `./gradlew --version` — step *Resolve the Gradle distribution* | **Run and passed.** The wrapper found its pinned distribution, downloaded it on the macOS runner and printed the version. The wrapper question (traps 11 and 12) is closed; from here the only question is the code. |
 | **The first real Gradle builds** | run 1: `./gradlew --console=plain --stacktrace :composeApp:compileKotlinMetadata`; run 2: `./gradlew --console=plain --stacktrace :composeApp:compileCommonMainKotlinMetadata` — step *Compile commonMain metadata* | **Both failed, and the second one failed honestly: a pinned version was wrong.** Run 1 (12 s) ran a task KGP disables (trap 13), so its tail said nothing. Run 2 (21 s) printed the answer: `Plugin [id: 'com.android.application', version: '9.4.2', apply: false] was not found in any of the following sources … could not resolve plugin artifact 'com.android.application:com.android.application.gradle.plugin:9.4.2'`. **AGP 9.4.2 does not exist** — Google Maven's metadata for that marker and for `com.android.tools.build:gradle` both end the 9.4 line at **9.4.1**. The failure happens while configuring `:androidApp`, before any Kotlin compiles, which is why the log contains no `e:` lines at all. Corrected in `gradle/libs.versions.toml` (9.4.1); evidence and the mistake's shape in `docs/VERSIONS.md`. **Still true: nothing under `composeApp/src` has ever been through a Kotlin compiler, and no `commonTest` test has ever run.** |
+| **The third run — the first with plugins resolved** | `./gradlew --console=plain --stacktrace :composeApp:compileCommonMainKotlinMetadata` | **Ran for 2 m 28 s and failed on an iOS target that Compose does not publish.** AGP 9.4.1 resolved, configuration completed, dependencies downloaded, and the build reached `:composeApp:transformCommonMainDependenciesMetadata`. It failed because the `iosX64` metadata classpath can never resolve: `Could not resolve all files for configuration ':composeApp:iosX64CompilationDependenciesMetadata' > Could not resolve org.jetbrains.compose.runtime:runtime:1.12.1 … No matching variant … needed 'org.jetbrains.kotlin.native.target' with value 'ios_x64'`. Compose Multiplatform 1.12.x publishes no `iosX64` artifacts (the last was `1.11.0-alpha01`), so `iosX64()` is gone from `:composeApp` — **ADR-015**. The step's own failure block worked as intended: the message was inside the 50 lines the UI shows, no "Load full log" needed. |
 | Gradle wrapper restore | `rm -f gradlew gradlew.bat gradle/wrapper/* && bash tools/ci/ensure_gradle_wrapper.sh 9.6.0` | **Run.** Downloads the wrapper from `gradle/gradle@v9.6.0`, validates the jar's manifest, writes the properties, and reports the pin. A second run is a no-op. |
 | The wrapper runs here too, as far as the network allows | `JAVA_HOME=<jdk4py Temurin 25> ./gradlew --version` | **Run, and it works up to the network.** The jar loads, `org.gradle.wrapper.GradleWrapperMain` starts, the properties parse, the pinned URL `…/gradle-9.6.0-bin.zip` is resolved, and the `retries=3` / `retryBackOffMs=500` written into those properties are honoured (`Attempt 1/4 … 4/4`). The download itself fails with `SSLHandshakeException` because **this sandbox has no route to services.gradle.org** — so Gradle has still never run, and no dependency has ever been resolved. |
 | Wrapper bootstrap under Gradle 8.14.1 (the old approach) | a stub of 8.14.1's behaviour, then twice on Codemagic | **Failed on Codemagic**, twice, and is gone. See trap 11. |
@@ -315,6 +316,24 @@ and the missing unconfirmed-rider-cost seed case, both listed under §1.
     claim AGP 9 hard-fails on `enableJetifier`/`useAndroidX`; the release notes, which are
     what the Upgrade Assistant enforces, say otherwise — and the fast checks in §1 were
     re-run against those notes on 2026-10-15.
+
+16. **Reading a KMP variant-resolution failure.** The message names the configuration, the
+    module it could not resolve, and the attributes the *consumer* asked for
+    (`org.jetbrains.kotlin.platform.type = native`,
+    `org.jetbrains.kotlin.native.target = ios_x64`); then it lists the variants the module
+    actually has. When the variants it lists are all `android*` or `jvm`, the publisher
+    has no artifact for that target at that version — it is not a mistake on our side.
+    Check it in two reads, neither of which needs a JDK:
+    `https://repo1.maven.org/maven2/<group-path>/` lists every per-target module a group
+    publishes (`runtime-iosarm64`, `runtime-iosx64`, …), and
+    `…/<group-path>/<artifact>-<target>/maven-metadata.xml` lists the versions that exist
+    for that target. Compose Multiplatform 1.12.x: `runtime-iosarm64` → 1.12.1,
+    `runtime-iosx64` → `1.11.0-alpha01` only. GitLive, Koin and Coil all publish `iosx64`,
+    so this was Compose's limit and the target was dropped (ADR-015).
+    A related shape worth recognising: **"Configuration cache state could not be cached …
+    error writing value of type `DefaultConfigurableFileCollection`"** was not the problem
+    — it was Gradle failing to serialise a task input it could not resolve. The cause is
+    in the `> Could not resolve …` lines underneath it.
 
 ## 4. First real build — in this order
 

@@ -148,10 +148,11 @@ workflows:
           # `allTests` is Kotlin Multiplatform's aggregate: the Android host tests plus
           # the Kotlin/Native targets, so this compiles the iOS half of the shared
           # module too. The first run downloads the Kotlin/Native toolchain for those
-          # targets (~1 GB); $HOME/.konan is cached, so it is paid once. If the iosX64
-          # test binary turns out to be awkward on Apple silicon, narrow this to
-          # `:composeApp:iosSimulatorArm64Test :composeApp:testDebugUnitTest` and say so
-          # in docs/COMPILE_CHECKLIST.md. If a task name here is wrong, the log will say
+          # targets (~1 GB); $HOME/.konan is cached, so it is paid once. The iOS targets
+          # are iosArm64 (device) and iosSimulatorArm64 (Apple-silicon simulator); there
+          # is no iosX64 any more (ADR-015). If `allTests` turns out to include a test
+          # task that needs a booted device, narrow this to `:composeApp:iosSimulatorArm64Test`
+          # plus the Android host-test task and say so in docs/COMPILE_CHECKLIST.md. If a task name here is wrong, the log will say
           # "Task ... not found"; `./gradlew :composeApp:tasks --all` lists the real ones
           # (trap 8 in docs/COMPILE_CHECKLIST.md §3).
           ./gradlew --console=plain --stacktrace :composeApp:allTests

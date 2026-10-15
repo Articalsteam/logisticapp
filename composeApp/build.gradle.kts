@@ -3,7 +3,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 // =============================================================================
 // :composeApp — shared Kotlin Multiplatform code and the whole Compose UI.
 //
-// Targets: android (library), iosArm64, iosSimulatorArm64, iosX64.
+// Targets: android (library), iosArm64 (devices) and iosSimulatorArm64
+// (Apple-silicon simulator). No iosX64 — see ADR-015.
 // Desktop and web are deliberately absent: the MVP ships Android and iOS only
 // (spec §1, ADR-006).
 //
@@ -35,8 +36,11 @@ kotlin {
         }
     }
 
+    // iosArm64 = real devices; iosSimulatorArm64 = the simulator on Apple-silicon Macs.
+    // There is deliberately no iosX64 (the Intel-Mac simulator): Compose Multiplatform
+    // 1.12.x publishes no iosX64 artifacts — the last was 1.11.0-alpha01 — so that
+    // target's metadata classpath can never resolve. See ADR-015.
     listOf(
-        iosX64(),
         iosArm64(),
         iosSimulatorArm64(),
     ).forEach { iosTarget ->
