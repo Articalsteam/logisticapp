@@ -50,7 +50,8 @@ import com.articals.logistics.di.SupportLocator
 /**
  * The demo control panel.
  *
- * Only ever composed when [DemoActions.active] is true. Its job is to make every
+ * Only ever composed when the running build has diagnostics (a demo build, or a debug
+ * build pointed at the demo mode). Its job is to make every
  * state the brief asks for reachable on purpose — loading, empty, error, offline and
  * success — instead of hoping to be lucky with a real network.
  *
@@ -62,7 +63,6 @@ import com.articals.logistics.di.SupportLocator
 @Composable
 fun DemoControlsSheet(
     state: DiagnosticsState,
-    actions: DemoActions,
     onNetworkChange: (DemoNetworkMode) -> Unit,
     onLatencyChange: (Long) -> Unit,
     onErrorChange: (AppError?) -> Unit,

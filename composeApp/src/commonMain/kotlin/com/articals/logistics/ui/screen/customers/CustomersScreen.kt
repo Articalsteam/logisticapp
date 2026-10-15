@@ -56,7 +56,6 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun CustomersScreen(
     tenantId: String,
-    currency: String,
     permissions: Set<String>,
     onOpenCustomer: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -150,7 +149,6 @@ fun CustomersScreen(
                 items(items = list, key = { it.id }) { customer ->
                     CustomerRow(
                         customer = customer,
-                        currency = currency,
                         canManage = canManage,
                         onOpen = { onOpenCustomer(customer.id) },
                         onArchive = { viewModel.askArchive(customer) },
@@ -188,7 +186,6 @@ fun CustomersScreen(
 @Composable
 private fun CustomerRow(
     customer: CustomerDto,
-    currency: String,
     canManage: Boolean,
     onOpen: () -> Unit,
     onArchive: () -> Unit,

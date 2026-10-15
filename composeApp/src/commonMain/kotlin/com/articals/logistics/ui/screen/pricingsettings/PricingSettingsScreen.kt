@@ -132,7 +132,7 @@ fun PricingSettingsScreen(
         )
 
         Spacer(Modifier.height(Spacing.md))
-        MethodSection(draft = draft, enabled = enabled, currency = currency, onChange = viewModel::updateDraft)
+        MethodSection(draft = draft, enabled = enabled, onChange = viewModel::updateDraft)
 
         Spacer(Modifier.height(Spacing.md))
         ChargesSection(draft = draft, enabled = enabled, currency = currency, onChange = viewModel::updateDraft)
@@ -256,7 +256,6 @@ private fun RatesIdentity(
 private fun MethodSection(
     draft: RatesDraft,
     enabled: Boolean,
-    currency: String,
     onChange: (RatesDraft) -> Unit,
 ) {
     SectionCard(
@@ -268,6 +267,7 @@ private fun MethodSection(
             selected = draft.method,
             optionLabel = { PricingMethods.label(it) },
             onSelect = { onChange(draft.copy(method = it)) },
+            enabled = enabled,
         )
         Text(
             text = ArticalsStrings.Settings.flatRateHint,

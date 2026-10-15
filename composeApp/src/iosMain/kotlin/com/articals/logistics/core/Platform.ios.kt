@@ -68,6 +68,11 @@ actual suspend fun openDialer(phoneNumber: String): Boolean = runCatching {
     UIApplication.sharedApplication.openURL(url)
 }.getOrDefault(false)
 
+// The Android side puts `subject` in EXTRA_SUBJECT. The iOS share sheet has no subject
+// for the targets this app shares to — only Mail reads one, and only through an item
+// source this app does not implement — so the parameter is accepted and ignored here.
+// The shared text is what WhatsApp and every other target actually sends.
+// unused-params-allow: subject
 @OptIn(ExperimentalForeignApi::class)
 actual suspend fun sharePlainText(subject: String, text: String): Boolean = runCatching {
     val presenter = IosPlatformBridge.presentingViewController ?: return@runCatching false
@@ -78,6 +83,8 @@ actual suspend fun sharePlainText(subject: String, text: String): Boolean = runC
     true
 }.getOrDefault(false)
 
+// Android labels the clip with ClipData.newPlainText; UIPasteboard has no label field.
+// unused-params-allow: label
 actual fun copyToClipboard(text: String, label: String) {
     runCatching { UIPasteboard.generalPasteboard.string = text }
 }

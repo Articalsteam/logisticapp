@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -173,6 +174,7 @@ fun ArticalsPasswordField(
         isError = error != null,
         visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = imeAction),
+        keyboardActions = KeyboardActions(onDone = { onDone?.invoke() }),
         supportingText = error?.let { text -> { Text(text, color = MaterialTheme.colorScheme.error) } },
         trailingIcon = {
             IconButton(onClick = { visible = !visible }) {
@@ -282,6 +284,7 @@ fun <T> ChoiceChips(
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
     label: String? = null,
+    enabled: Boolean = true,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         if (label != null) {
@@ -300,6 +303,7 @@ fun <T> ChoiceChips(
                 FilterChip(
                     selected = option == selected,
                     onClick = { onSelect(option) },
+                    enabled = enabled,
                     label = { Text(optionLabel(option)) },
                 )
             }

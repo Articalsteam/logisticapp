@@ -178,7 +178,6 @@ fun CalculatorScreen(
                 Spacer(Modifier.height(Spacing.md))
                 CustomerSection(
                     state = state,
-                    currency = currency,
                     onModeChange = viewModel::setCustomerMode,
                     onCustomerChange = viewModel::setCustomer,
                     onNewCustomerChange = viewModel::setNewCustomer,
@@ -246,7 +245,6 @@ fun CalculatorScreen(
 @Composable
 private fun CustomerSection(
     state: CalculatorState,
-    currency: String,
     onModeChange: (CustomerMode) -> Unit,
     onCustomerChange: (String?) -> Unit,
     onNewCustomerChange: (String, String, String) -> Unit,

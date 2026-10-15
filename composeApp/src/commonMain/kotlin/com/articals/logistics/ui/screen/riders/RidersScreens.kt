@@ -58,7 +58,6 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun RidersScreen(
     tenantId: String,
-    currency: String,
     permissions: Set<String>,
     onOpenRider: (String) -> Unit,
     modifier: Modifier = Modifier,

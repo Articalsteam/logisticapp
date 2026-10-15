@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -18,8 +19,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.articals.logistics.ui.text.ArticalsStrings
 
 /**
@@ -70,9 +74,12 @@ fun ArticalsLogo(modifier: Modifier = Modifier, compact: Boolean = false) {
 /**
  * The company's own mark, once a logo has been uploaded.
  *
- * Falls back to the company's initial on its brand colour — never to a stock photo,
- * and never to a broken image: an owner who has not uploaded a logo yet sees their
- * own initial, which is honest and looks deliberate.
+ * The initial is drawn first, in the company's brand colour, and the uploaded image is
+ * drawn over it once it has loaded. Nothing is shown for a logo that fails to load, so
+ * the result is the initial — never a stock photo, never a broken-image icon, and never
+ * a blank square. That is also what keeps demo mode offline: the demo upload returns a
+ * `demo-logo://` marker, which is not an http(s) URL and is therefore never fetched; a
+ * person who pastes a real link is asking for that image specifically.
  */
 @Composable
 fun CompanyLogo(
@@ -83,10 +90,12 @@ fun CompanyLogo(
     size: androidx.compose.ui.unit.Dp = 40.dp,
 ) {
     val brand = brandColorHex?.let(::parseHexColorOrNull) ?: MaterialTheme.colorScheme.primary
+    val shape = RoundedCornerShape(size / 4)
+    val loadable = logoUrl?.trim()?.takeIf { it.startsWith("http://") || it.startsWith("https://") }
     Box(
         modifier = modifier
             .size(size)
-            .background(color = brand, shape = RoundedCornerShape(size / 4)),
+            .background(color = brand, shape = shape),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -95,6 +104,14 @@ fun CompanyLogo(
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onPrimary,
         )
+        if (loadable != null) {
+            AsyncImage(
+                model = loadable,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize().clip(shape),
+                contentScale = ContentScale.Fit,
+            )
+        }
     }
 }
 

@@ -15,16 +15,18 @@ commands in §4 have been run on a machine with the Android SDK and Xcode.
 | Check | Command | Result |
 | --- | --- | --- |
 | Backend unit tests | `cd functions && npm install --no-audit --no-fund && npx vitest run --project unit` | 163/163 passing, 7 files (last run before the P3 client batch) |
-| Named arguments against every `class` in the tree | `python3 tools/check_dto_args.py composeApp/src` | 1 734 named arguments across 141 files, **0 problems** |
-| Member access on the demo objects | `python3 tools/check_member_calls.py composeApp/src store=DemoStore controls=DemoControls simulator=DemoQuoteSimulator world=DemoWorld` | 3 387 accesses, **2 problems — both false positives**, see below |
-| Imports resolve inside the tree | `python3 tools/check_imports.py composeApp/src` | 1 345 imports across 141 files, **0 problems** |
-| Named arguments against our own functions | `python3 tools/check_named_args.py composeApp/src` | 1 658 named arguments across 141 files, **0 problems** |
-| Every file is structurally closed | `python3 tools/check_balance.py .` | 143 `.kt` files, **0 problems** |
+| Named arguments against every `class` in the tree | `python3 tools/check_dto_args.py composeApp/src` | 1 734 named arguments across 143 files, **0 problems** |
+| Member access on the demo objects | `python3 tools/check_member_calls.py composeApp/src store=DemoStore controls=DemoControls simulator=DemoQuoteSimulator world=DemoWorld` | 3 388 accesses, **2 problems — both false positives**, see below |
+| Imports resolve inside the tree | `python3 tools/check_imports.py composeApp/src` | 1 344 imports across 143 files, **0 problems** |
+| Named arguments against our own functions | `python3 tools/check_named_args.py composeApp/src` | 1 651 named arguments across 143 files, **0 problems** |
+| Every file is structurally closed | `python3 tools/check_balance.py .` | 145 `.kt` files, **0 problems** |
+| No parameter is accepted and ignored | `python3 tools/check_unused_params.py composeApp/src` | 143 files, **0 problems** — plus 2 exemptions declared in source (`Platform.ios.kt`: the iOS share sheet has no subject, `UIPasteboard` has no label). Every exemption is printed on each run so it cannot be forgotten. |
 | Rules tests | `cd functions && npm run test:rules` (Firestore emulator) | **Not run here** — the emulator JAR is not downloadable from this sandbox. Owner's machine only. |
 | Codemagic workflows | `codemagic.yaml` (three workflows) | **Run at last.** `android-checks` now reaches Gradle (see the two rows below); the workflow itself no longer fails on configuration or on the wrapper. |
 | **Gradle 9.6.0 runs on Codemagic** | `./gradlew --version` — step *Resolve the Gradle distribution* | **Run and passed.** The wrapper found its pinned distribution, downloaded it on the macOS runner and printed the version. The wrapper question (traps 11 and 12) is closed; from here the only question is the code. |
-| **The first real Gradle builds** | run 1: `./gradlew --console=plain --stacktrace :composeApp:compileKotlinMetadata`; run 2: `./gradlew --console=plain --stacktrace :composeApp:compileCommonMainKotlinMetadata` — step *Compile commonMain metadata* | **Both failed, and the second one failed honestly: a pinned version was wrong.** Run 1 (12 s) ran a task KGP disables (trap 13), so its tail said nothing. Run 2 (21 s) printed the answer: `Plugin [id: 'com.android.application', version: '9.4.2', apply: false] was not found in any of the following sources … could not resolve plugin artifact 'com.android.application:com.android.application.gradle.plugin:9.4.2'`. **AGP 9.4.2 does not exist** — Google Maven's metadata for that marker and for `com.android.tools.build:gradle` both end the 9.4 line at **9.4.1**. The failure happens while configuring `:androidApp`, before any Kotlin compiles, which is why the log contains no `e:` lines at all. Corrected in `gradle/libs.versions.toml` (9.4.1); evidence and the mistake's shape in `docs/VERSIONS.md`. **Still true: nothing under `composeApp/src` has ever been through a Kotlin compiler, and no `commonTest` test has ever run.** |
+| **The first real Gradle builds** | run 1: `./gradlew --console=plain --stacktrace :composeApp:compileKotlinMetadata`; run 2: `./gradlew --console=plain --stacktrace :composeApp:compileCommonMainKotlinMetadata` — step *Compile commonMain metadata* | **Both failed, and the second one failed honestly: a pinned version was wrong.** Run 1 (12 s) ran a task KGP disables (trap 13), so its tail said nothing. Run 2 (21 s) printed the answer: `Plugin [id: 'com.android.application', version: '9.4.2', apply: false] was not found in any of the following sources … could not resolve plugin artifact 'com.android.application:com.android.application.gradle.plugin:9.4.2'`. **AGP 9.4.2 does not exist** — Google Maven's metadata for that marker and for `com.android.tools.build:gradle` both end the 9.4 line at **9.4.1**. The failure happens while configuring `:androidApp`, before any Kotlin compiles, which is why the log contains no `e:` lines at all. Corrected in `gradle/libs.versions.toml` (9.4.1); evidence and the mistake's shape in `docs/VERSIONS.md`. **Superseded by the rows below: the Kotlin compiler has since run over this code.** |
 | **The third run — the first with plugins resolved** | `./gradlew --console=plain --stacktrace :composeApp:compileCommonMainKotlinMetadata` | **Ran for 2 m 28 s and failed on an iOS target that Compose does not publish.** AGP 9.4.1 resolved, configuration completed, dependencies downloaded, and the build reached `:composeApp:transformCommonMainDependenciesMetadata`. It failed because the `iosX64` metadata classpath can never resolve: `Could not resolve all files for configuration ':composeApp:iosX64CompilationDependenciesMetadata' > Could not resolve org.jetbrains.compose.runtime:runtime:1.12.1 … No matching variant … needed 'org.jetbrains.kotlin.native.target' with value 'ios_x64'`. Compose Multiplatform 1.12.x publishes no `iosX64` artifacts (the last was `1.11.0-alpha01`), so `iosX64()` is gone from `:composeApp` — **ADR-015**. The step's own failure block worked as intended: the message was inside the 50 lines the UI shows, no "Load full log" needed. |
+| **The Kotlin compiler ran** | `./gradlew --console=plain --stacktrace :composeApp:compileCommonMainKotlinMetadata` (run 4) | **2 m 40 s, 5 tasks executed, and the first real Kotlin errors in this project's history.** Nothing earlier in the pipeline is broken any more: the task executed and the compiler ran on the shared code. It reported `core/Time.kt:41:50 Unresolved reference 'number' on receiver of type 'Month'` plus eight further errors in `data/FirebaseErrorMapper.kt`, where the compiler fell back to the standard library's `Char.code`. Both are the same mistake — extension properties written as if they were members, and the GitLive ones imported under aliases — fixed with `import kotlinx.datetime.number` and by splitting the mapper one file per SDK (trap 17). The step also now prints **every** error line last, with a per-file count, because the 50-line window had truncated the list at eight. **No compile has completed yet, and no `commonTest` test has ever run.** |
 | Gradle wrapper restore | `rm -f gradlew gradlew.bat gradle/wrapper/* && bash tools/ci/ensure_gradle_wrapper.sh 9.6.0` | **Run.** Downloads the wrapper from `gradle/gradle@v9.6.0`, validates the jar's manifest, writes the properties, and reports the pin. A second run is a no-op. |
 | The wrapper runs here too, as far as the network allows | `JAVA_HOME=<jdk4py Temurin 25> ./gradlew --version` | **Run, and it works up to the network.** The jar loads, `org.gradle.wrapper.GradleWrapperMain` starts, the properties parse, the pinned URL `…/gradle-9.6.0-bin.zip` is resolved, and the `retries=3` / `retryBackOffMs=500` written into those properties are honoured (`Attempt 1/4 … 4/4`). The download itself fails with `SSLHandshakeException` because **this sandbox has no route to services.gradle.org** — so Gradle has still never run, and no dependency has ever been resolved. |
 | Wrapper bootstrap under Gradle 8.14.1 (the old approach) | a stub of 8.14.1's behaviour, then twice on Codemagic | **Failed on Codemagic**, twice, and is gone. See trap 11. |
@@ -113,7 +115,9 @@ inside strings and templates) and it now catches the first two and passes the th
 
 ## 2. Written but not compiled
 
-Everything under `composeApp/src/` — 132 Kotlin files, plus 9 test files:
+Everything under `composeApp/src/` — 134 Kotlin files, plus 9 test files. It has been
+through the compiler **once** (see the last two rows of §1); none of it has compiled
+cleanly yet:
 
 * `core/` — money, errors, results, permissions, `AppConfig`/`AppMode`, `UiState`,
   validation, time/date helpers.
@@ -335,6 +339,52 @@ and the missing unconfirmed-rider-cost seed case, both listed under §1.
     — it was Gradle failing to serialise a task input it could not resolve. The cause is
     in the `> Could not resolve …` lines underneath it.
 
+17. **Extension properties need imports, and an import alias takes the name out of scope.**
+    The first compiler run produced errors that were one mistake in two libraries: code
+    written as if a property were a member of the class.
+    * kotlinx-datetime: `Month.number` is `public val Month.number: Int get() = ordinal + 1`
+      in package `kotlinx.datetime`, not a member of the enum — hence
+      `import kotlinx.datetime.number`. `DayOfWeek.isoDayNumber` has the same shape, and
+      the `toLocalDateTime`/`toInstant` conversions are extension *functions* on
+      `kotlin.time.Instant` (Time.kt already imported those).
+    * GitLive: `FirebaseFunctionsException.code` and `.details`,
+      `FirebaseFirestoreException.code`, and `FirebaseAuthException.code` (a nullable
+      string) are all extension properties in their own packages — as are the
+      `Firebase.auth`/`.firestore`/`.functions`/`.storage` accessors, which were already
+      imported by name.
+    The symptom is what wastes the time. With
+    `import dev.gitlive.firebase.functions.code as functionsCode` and `exception.code` in
+    the body, the compiler does **not** report an unresolved reference at the import; it
+    finds the standard library's `Char.code` instead and says
+    `Candidate 'val Char.code: Int' is inapplicable because of a receiver type mismatch`,
+    then treats the `when` subject as `Int` and adds
+    `Comparison of incompatible enums 'Int' and 'FunctionsExceptionCode'` for every branch.
+    Both messages point at the comparison, not at the import.
+    An alias renames a declaration, and for an extension property that leaves the original
+    name — the only name member access can spell — out of scope. Rather than depend on
+    whether an aliased extension property can be reached under its alias, the fix was
+    structural: `FirebaseErrorMapper` is a dispatcher over `FunctionsErrorMapper`,
+    `FirestoreErrorMapper` and `AuthErrorMapper`, one file per SDK, each importing exactly
+    one `code` extension. Do not "tidy" them back into a single file.
+
+18. **A parameter that is accepted and ignored compiles perfectly.** Nothing in Kotlin,
+    Gradle or the other checkers in this directory notices it; `tools/check_unused_params.py`
+    (§1) exists for exactly this. Its first run found two real ones and one platform
+    limitation:
+    * `ArticalsPasswordField` took an `onDone` — both the sign-in and the register screen
+      pass their submit function — and never wired `keyboardActions`, so the keyboard's
+      Done key did nothing at all;
+    * `CompanyLogo` took a `logoUrl` and drew the initial instead, so a logo the owner had
+      uploaded was never shown, and Coil sat in the dependency list unused.
+    Two false positives in the checker's own first version are worth remembering because
+    they have the same shape as anything it reports: it read only the rest of the `=` line,
+    so every multi-line expression body looked empty (~30 findings, nearly all wrong), and
+    it counted angle brackets, so the `>` in `->` unbalanced the split and a lambda's own
+    parameter (`extras` in `ActualsDialog`) was reported as the composable's.
+    The checker is deliberately conservative — comments count as usage, so a clean run is
+    not a proof — and a declaration that must ignore a parameter says so in writing,
+    `// unused-params-allow: subject`, which is reprinted on every run.
+
 ## 4. First real build — in this order
 
 ```bash
@@ -366,8 +416,19 @@ bash tools/ci/ensure_gradle_wrapper.sh 9.6.0   # the wrapper, once
 ./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64   # needs macOS
 ```
 
-Record the outcome of each line here as it is run. Until then, nothing in this
-repository has been compiled, and no test in `commonTest` has ever executed.
+Record the outcome of each line here as it is run. As of 2026-10-15 the Kotlin compiler
+has run over `commonMain` and reported real errors in our own source — which is further
+than this project had ever got — but **no compile has completed** and **no test in
+`commonTest` has ever executed**.
+
+Two things the compiler cannot verify, to look at in those runs:
+
+* the company logo — `CompanyLogo` draws the initial and loads an http(s) URL over it with
+  Coil. Android should show a pasted image; on iOS, Coil 3 is expected to pick the Ktor
+  engine up from `coil-network-ktor3` on the classpath. If it does not, the initial stays
+  and nothing crashes — but the logo should be visible on both platforms.
+* the password fields' Done key — pressing it on the sign-in and register screens should
+  submit, now that `ArticalsPasswordField` wires `keyboardActions` to `onDone`.
 
 ## 5. Still to write
 

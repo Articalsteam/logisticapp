@@ -405,7 +405,7 @@ class DemoStore(
             planName = plan.name,
             planPriceMinor = plan.priceMinor,
             planCurrency = plan.currency,
-            status = entitlementStatus(entitlement, record),
+            status = entitlementStatus(entitlement),
             billingMode = record.billingMode,
             entitlement = entitlement,
             entitlementEffectiveUntil = effectiveUntil(record),
@@ -427,7 +427,7 @@ class DemoStore(
         else -> record.trialEndsAt
     }
 
-    private fun entitlementStatus(entitlement: String, record: DemoSubscriptionRecord): String = when (entitlement) {
+    private fun entitlementStatus(entitlement: String): String = when (entitlement) {
         EntitlementStates.Suspended -> "suspended"
         EntitlementStates.Limited -> "expired"
         EntitlementStates.Trialing -> "trialing"

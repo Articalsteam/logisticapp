@@ -49,7 +49,6 @@ import com.articals.logistics.ui.component.Banner
 import com.articals.logistics.ui.component.BannerTone
 import com.articals.logistics.ui.component.DemoBadge
 import com.articals.logistics.ui.demo.DemoControlsSheet
-import com.articals.logistics.ui.demo.rememberDemoActions
 import com.articals.logistics.ui.screen.auth.RegisterScreen
 import com.articals.logistics.ui.screen.auth.ResetPasswordScreen
 import com.articals.logistics.ui.screen.auth.SignInScreen
@@ -330,7 +329,6 @@ fun ArticalsNavigation(
                         } else {
                             CustomersScreen(
                                 tenantId = tenantId,
-                                currency = state.currency,
                                 permissions = state.permissions,
                                 onOpenCustomer = { customerId ->
                                     navController.navigate(Routes.customer(customerId))
@@ -367,7 +365,6 @@ fun ArticalsNavigation(
                         } else {
                             RidersScreen(
                                 tenantId = tenantId,
-                                currency = state.currency,
                                 permissions = state.permissions,
                                 onOpenRider = { riderId -> navController.navigate(Routes.rider(riderId)) },
                             )
@@ -881,7 +878,6 @@ private fun DemoPanelHost(
     onDismiss: () -> Unit,
 ) {
     val controls = SupportLocator.diagnosticsOrNull() ?: return
-    val actions = rememberDemoActions()
     val panelState by controls.state.collectAsStateWithLifecycle()
     val fontScale by appPreferences.fontScale.collectAsStateWithLifecycle()
     val darkMode by appPreferences.darkMode.collectAsStateWithLifecycle()
@@ -890,7 +886,6 @@ private fun DemoPanelHost(
 
     DemoControlsSheet(
         state = state,
-        actions = actions,
         onNetworkChange = controls::setNetwork,
         onLatencyChange = controls::setLatency,
         onErrorChange = controls::forceNextError,

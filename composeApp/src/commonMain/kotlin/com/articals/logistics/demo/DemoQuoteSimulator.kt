@@ -190,7 +190,7 @@ class DemoQuoteSimulator(
         val computedCharge = linesTotal
 
         // --- rider cost and delivery extras ---------------------------------
-        val riderCost = estimateRiderCost(config, request, metres, computedCharge, warnings)
+        val riderCost = estimateRiderCost(config, request, metres, warnings)
         val additionalDeliveryCosts = additionalCosts
             .filter { it.kind != "operating" }
             .sumOf { it.amountMinor }
@@ -380,7 +380,6 @@ class DemoQuoteSimulator(
         config: PricingConfigDto,
         request: QuoteRequestDto,
         metres: Long,
-        charge: Long,
         warnings: MutableList<QuoteWarningDto>,
     ): RiderCostEstimateDto {
         request.riderCostOverride?.let { override ->

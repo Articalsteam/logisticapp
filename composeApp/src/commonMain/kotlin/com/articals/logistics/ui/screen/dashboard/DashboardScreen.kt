@@ -171,7 +171,7 @@ private fun MetricsBlock(
                 }
 
                 Spacer(Modifier.height(Spacing.md))
-                TrendBars(metrics = metrics, currency = currency)
+                TrendBars(metrics = metrics)
             }
         }
 
@@ -225,7 +225,7 @@ private fun TileGrid(tiles: List<Pair<String, String>>) {
  * zero.
  */
 @Composable
-private fun TrendBars(metrics: DashboardMetricsDto, currency: String) {
+private fun TrendBars(metrics: DashboardMetricsDto) {
     val points = metrics.trends
     if (points.isEmpty()) return
     val max = points.maxOf { it.deliveriesCompleted }.coerceAtLeast(1)
