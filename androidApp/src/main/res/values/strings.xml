@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The interface is written in Compose and its copy lives in one Kotlin object
+         (ui/text/ArticalsStrings.kt) so a second language can be added later. These
+         strings exist only for the launcher and the platform's own chrome. -->
+    <string name="app_name">Articals Logistics</string>
+</resources>

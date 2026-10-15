@@ -1,0 +1,93 @@
+# ---------------------------------------------------------------------------
+# Secrets and environment configuration (never commit real credentials)
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+local.properties
+!local.properties.example
+**/Config.xcconfig
+!**/Config.xcconfig.example
+google-services.json
+GoogleService-Info.plist
+!**/google-services.json.example
+!**/GoogleService-Info.plist.example
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
+*.cer
+serviceAccount*.json
+*-service-account.json
+# Public tracking page needs a web app config at deploy time; the example is committed.
+hosting/public/firebase-config.js
+!hosting/public/firebase-config.example.js
+# Cloud Functions secrets / emulator data
+functions/.secret.local
+functions/**/.runtimeconfig.json
+.secret.local
+emulator-data/
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+# Firebase Emulator Hub ports
+.firebase/
+
+# ---------------------------------------------------------------------------
+# Gradle / build output
+# ---------------------------------------------------------------------------
+.gradle/
+build/
+*/build/
+gradle-app.setting
+.gradletasknamecache
+# The Gradle wrapper is committed on purpose (see docs/SETUP.md §7.1): the CI images
+# ship Gradle 8.14.1, which cannot configure this build, and generating a wrapper needs
+# a JDK that a bare checkout may not have.
+!gradlew
+!gradlew.bat
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+captures/
+.externalNativeBuild/
+.cxx/
+
+# ---------------------------------------------------------------------------
+# Kotlin / Native / Xcode
+# ---------------------------------------------------------------------------
+.kotlin/
+shared/build/
+**/*.knm
+**/xcuserdata/
+**/*.xcworkspace/xcuserdata/
+**/DerivedData/
+iosApp/Pods/
+iosApp/iosApp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/configuration/*.resolved
+macos-app/
+*.hprof
+
+# ---------------------------------------------------------------------------
+# Node / Cloud Functions
+# ---------------------------------------------------------------------------
+node_modules/
+functions/lib/
+functions/coverage/
+functions/.cache/
+npm-debug.log*
+yarn-error.log*
+.pnpm-store/
+
+# ---------------------------------------------------------------------------
+# IDE / OS
+# ---------------------------------------------------------------------------
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+*.orig
+
+# Python caches from the structural checkers in tools/
+__pycache__/
+*.pyc

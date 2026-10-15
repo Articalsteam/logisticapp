@@ -1,0 +1,39 @@
+{
+  "_comment": [
+    "This is a SHAPE example, not a working configuration. Do not copy it as-is.",
+    "Download the real file from Firebase console -> Project settings -> Your apps,",
+    "and place it at androidApp/google-services.json. That file is git-ignored;",
+    "this example is committed so the shape is documented and reviewers can tell",
+    "what is missing when a build reports no Firebase configuration.",
+    "Never commit the real file: it contains your project's API keys and app ids."
+  ],
+  "project_info": {
+    "project_number": "000000000000",
+    "project_id": "your-firebase-project-id",
+    "storage_bucket": "your-firebase-project-id.appspot.com",
+    "firebase_url": "https://your-firebase-project-id-default-rtdb.firebaseio.com"
+  },
+  "client": [
+    {
+      "_comment": "The release applicationId. A debug variant with the .debug suffix needs its own entry if you register one in Firebase.",
+      "client_info": {
+        "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+        "android_client_info": {
+          "package_name": "com.articals.logistics"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "REPLACE_WITH_YOUR_ANDROID_API_KEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
