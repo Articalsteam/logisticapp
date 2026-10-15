@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex" />
+<title>Track your delivery</title>
+<!--
+  Public tracking.
+
+  This page holds no data of its own: it asks the `getPublicTracking` callable for a
+  projection that contains only the fields a customer may see (status, areas,
+  history, branding). No addresses, no rider identity, no prices and no internal
+  notes exist in that response at all (ADR-010).
+
+  Configuration: `firebase-config.js` must exist next to this file with the web app
+  configuration for your project. It is not committed (see
+  firebase-config.example.js). Without it the page explains that tracking is not
+  configured yet — it never invents a status.
+-->
+<style>
+  :root { color-scheme: light dark; --brand: #0f5132; --muted: #5c6b73; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px 16px 48px; min-height: 100vh;
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: #f6f7f8; color: #14181b;
+  }
+  @media (prefers-color-scheme: dark) { body { background: #14181b; color: #f2f4f5; } }
+  main { max-width: 520px; margin: 0 auto; }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  #logo { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; display: none; }
+  h1 { font-size: 1.25rem; margin: 0; }
+  p.muted { color: var(--muted); }
+  form { display: flex; gap: 8px; margin: 16px 0; flex-wrap: wrap; }
+  input {
+    flex: 1 1 200px; padding: 12px 14px; font-size: 1rem; border-radius: 10px;
+    border: 1px solid #c8ced3; background: transparent; color: inherit;
+  }
+  button {
+    padding: 12px 18px; font-size: 1rem; font-weight: 600; border: 0; border-radius: 10px;
+    background: var(--brand); color: #fff; cursor: pointer;
+  }
+  button[disabled] { opacity: .6; cursor: progress; }
+  .card {
+    background: #fff; border-radius: 14px; padding: 18px; margin-top: 18px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  }
+  @media (prefers-color-scheme: dark) { .card { background: #1d2327; } }
+  .badge {
+    display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: .8rem;
+    font-weight: 600; background: #e8f2ed; color: #0f5132;
+  }
+  ol.timeline { list-style: none; margin: 16px 0 0; padding: 0; }
+  ol.timeline li { padding: 10px 0 10px 18px; border-left: 2px solid #d7dde0; position: relative; }
+  ol.timeline li::before {
+    content: ""; position: absolute; left: -6px; top: 16px; width: 10px; height: 10px;
+    border-radius: 50%; background: #9aa7ae;
+  }
+  ol.timeline li[data-current="true"]::before { background: var(--brand); }
+  .error { color: #8a1c1c; }
+  footer { margin-top: 28px; font-size: .85rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img id="logo" alt="" />
+    <h1 id="company">Track your delivery</h1>
+  </header>
+
+  <p class="muted" id="intro">
+    Enter the tracking reference from your receipt. It looks like <code>ART-8F3K2QD9M1</code>.
+  </p>
+
+  <form id="form" autocomplete="off">
+    <input id="reference" name="reference" inputmode="latin" autocapitalize="characters"
+           spellcheck="false" placeholder="Tracking reference" aria-label="Tracking reference" required />
+    <button id="submit" type="submit">Track</button>
+  </form>
+
+  <div id="verification" class="card" hidden>
+    <p><strong>One more step.</strong> For privacy, this company asks for the last four
+      digits of the phone number used for the delivery.</p>
+    <form id="verification-form">
+      <input id="digits" inputmode="numeric" pattern="[0-9]{4}" maxlength="4"
+             placeholder="1234" aria-label="Last four digits" required />
+      <button type="submit">Continue</button>
+    </form>
+  </div>
+
+  <section id="result" class="card" hidden>
+    <div><span class="badge" id="status">—</span></div>
+    <p id="route" class="muted" hidden></p>
+    <ol class="timeline" id="timeline"></ol>
+    <p id="updated" class="muted" hidden></p>
+  </section>
+
+  <section id="problem" class="card" hidden>
+    <p id="problem-text" class="error"></p>
+    <p class="muted" id="problem-hint" hidden></p>
+  </section>
+
+  <footer>
+    <p id="support" hidden></p>
+    <p>Powered by Articals Logistics. This page shows delivery progress only.</p>
+  </footer>
+</main>
+
+<script src="firebase-config.js" onerror="window.__articalsConfigMissing = true"></script>
+<script type="module">
+  const elements = {
+    form: document.getElementById('form'),
+    reference: document.getElementById('reference'),
+    submit: document.getElementById('submit'),
+    verification: document.getElementById('verification'),
+    verificationForm: document.getElementById('verification-form'),
+    digits: document.getElementById('digits'),
+    result: document.getElementById('result'),
+    status: document.getElementById('status'),
+    route: document.getElementById('route'),
+    timeline: document.getElementById('timeline'),
+    updated: document.getElementById('updated'),
+    problem: document.getElementById('problem'),
+    problemText: document.getElementById('problem-text'),
+    problemHint: document.getElementById('problem-hint'),
+    company: document.getElementById('company'),
+    logo: document.getElementById('logo'),
+    support: document.getElementById('support'),
+  };
+
+  const CODE_HINTS = {
+    tracking_not_found: 'Check the reference and try again. References are case-insensitive.',
+    verification_required: 'That reference needs the last four digits of the delivery phone number.',
+    verification_failed: 'Those digits do not match this delivery.',
+  };
+
+  function show(section) {
+    for (const key of ['verification', 'result', 'problem']) {
+      elements[key].hidden = key !== section;
+    }
+  }
+
+  function fail(code, message) {
+    elements.problemText.textContent = message || 'We could not look up that reference.';
+    const hint = CODE_HINTS[code];
+    elements.problemHint.hidden = !hint;
+    elements.problemHint.textContent = hint || '';
+    show('problem');
+  }
+
+  function render(payload) {
+    if (payload.companyName) {
+      elements.company.textContent = payload.companyName;
+    }
+    elements.status.textContent = payload.statusLabel || payload.status || 'Status unavailable';
+    if (payload.brandColor && /^#[0-9a-f]{6}$/i.test(payload.brandColor)) {
+      document.documentElement.style.setProperty('--brand', payload.brandColor);
+    }
+    if (payload.companyLogoUrl) {
+      elements.logo.src = payload.companyLogoUrl;
+      elements.logo.style.display = 'block';
+    }
+    const areas = [payload.pickupArea, payload.destinationArea].filter(Boolean);
+    elements.route.hidden = areas.length !== 2;
+    elements.route.textContent = areas.join('  →  ');
+
+    elements.timeline.innerHTML = '';
+    for (const event of payload.history || []) {
+      const item = document.createElement('li');
+      item.textContent = `${event.label} · ${new Date(event.at).toLocaleString()}`;
+      if (event.status === payload.status) item.dataset.current = 'true';
+      elements.timeline.appendChild(item);
+    }
+
+    if (payload.lastUpdated) {
+      elements.updated.hidden = false;
+      elements.updated.textContent = `Last updated ${new Date(payload.lastUpdated).toLocaleString()}`;
+    }
+    if (payload.supportPhone) {
+      elements.support.hidden = false;
+      elements.support.textContent = `Questions? Call ${payload.supportPhone}`;
+    }
+    show('result');
+  }
+
+  let callTracking = null;
+
+  async function ensureCallable() {
+    if (callTracking) return callTracking;
+    if (!window.ARTICALS_FIREBASE_CONFIG) {
+      throw Object.assign(new Error('Tracking is not configured for this deployment yet.'), { code: 'not_configured' });
+    }
+    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js');
+    const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js');
+    const app = initializeApp(window.ARTICALS_FIREBASE_CONFIG);
+    const functions = getFunctions(app, window.ARTICALS_FIREBASE_REGION || 'europe-west1');
+    callTracking = httpsCallable(functions, 'getPublicTracking');
+    return callTracking;
+  }
+
+  async function lookup(reference, lastFour) {
+    const callable = await ensureCallable();
+    const data = { reference };
+    if (lastFour) data.verification = { lastFourPhoneDigits: lastFour };
+    const response = await callable(data);
+    return response.data?.data ?? response.data;
+  }
+
+  elements.form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const reference = elements.reference.value.trim();
+    if (!reference) return;
+    elements.submit.disabled = true;
+    try {
+      const payload = await lookup(reference, null);
+      render(payload);
+    } catch (error) {
+      const code = error?.code || 'not_configured';
+      if (code === 'not_configured') {
+        fail(code, 'Tracking is not configured for this deployment yet.');
+      } else if (/verification/i.test(JSON.stringify(error?.details || error?.message || ''))) {
+        show('verification');
+      } else {
+        fail(code, error?.details?.message || error?.message);
+      }
+    } finally {
+      elements.submit.disabled = false;
+    }
+  });
+
+  elements.verificationForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const reference = elements.reference.value.trim();
+    const digits = elements.digits.value.replace(/\D/g, '');
+    try {
+      render(await lookup(reference, digits));
+    } catch (error) {
+      fail(error?.code, error?.details?.message || error?.message);
+    }
+  });
+</script>
+</body>
+</html>

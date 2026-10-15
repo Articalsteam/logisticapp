@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Rider invitation — Articals Logistics</title>
+<!--
+  Landing page for a rider invitation link.
+
+  The invitation itself is single-use and expires; this page only hands the token to
+  the app (or shows it so it can be entered by hand). It deliberately does not call
+  any API: the token is accepted inside the signed-in app, where the backend can
+  match it against the rider's account.
+-->
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px 16px; min-height: 100vh; display: grid; place-items: center;
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: #f6f7f8; color: #14181b;
+  }
+  @media (prefers-color-scheme: dark) { body { background: #14181b; color: #f2f4f5; } }
+  main { max-width: 460px; width: 100%; }
+  .card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  @media (prefers-color-scheme: dark) { .card { background: #1d2327; } }
+  h1 { font-size: 1.3rem; margin: 0 0 8px; }
+  p { margin: 0 0 14px; }
+  a.button {
+    display: block; text-align: center; padding: 14px 18px; border-radius: 12px;
+    background: #0f5132; color: #fff; font-weight: 600; text-decoration: none; margin-bottom: 10px;
+  }
+  code { word-break: break-all; }
+  .token { display: flex; gap: 8px; margin: 12px 0; }
+  .token input {
+    flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid #c8ced3;
+    background: transparent; color: inherit; font-family: ui-monospace, monospace;
+  }
+  button { padding: 10px 14px; border-radius: 10px; border: 1px solid #c8ced3; background: transparent; color: inherit; }
+  .muted { color: #5c6b73; font-size: .9rem; }
+  .missing { display: none; }
+</style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <h1>Join your delivery team</h1>
+    <p id="intro" class="muted">Open this invitation in the Articals Logistics app to finish setting up your rider account.</p>
+
+    <a id="open-app" class="button" href="#">Open the app</a>
+
+    <div id="token-block" class="missing">
+      <p class="muted">If the button does nothing, copy this invitation code and paste it in the app under
+        <strong>Join a company → Enter invitation code</strong>.</p>
+      <div class="token">
+        <input id="token" readonly aria-label="Invitation code" />
+        <button id="copy" type="button">Copy</button>
+      </div>
+    </div>
+
+    <p id="no-token" class="missing">This link is missing its invitation code. Ask your dispatcher to send the
+      invitation again.</p>
+
+    <p class="muted" id="expiry"></p>
+  </div>
+</main>
+
+<script>
+  // Custom scheme handled by the app (see iosApp/Info.plist and androidApp manifest).
+  const SCHEME = 'articalslogistics';
+  const params = new URLSearchParams(window.location.search);
+  const token = (params.get('token') || params.get('t') || '').trim();
+
+  const openApp = document.getElementById('open-app');
+  const tokenBlock = document.getElementById('token-block');
+  const noToken = document.getElementById('no-token');
+  const tokenInput = document.getElementById('token');
+
+  if (!token) {
+    openApp.classList.add('missing');
+    noToken.classList.remove('missing');
+  } else {
+    const deepLink = `${SCHEME}://rider-invite?token=${encodeURIComponent(token)}`;
+    openApp.href = deepLink;
+    tokenInput.value = token;
+    tokenBlock.classList.remove('missing');
+
+    // Try to hand the token to the app; if nothing takes it, the page stays useful
+    // because the code is right there to copy.
+    openApp.addEventListener('click', (event) => {
+      event.preventDefault();
+      window.location.href = deepLink;
+      setTimeout(() => { tokenBlock.classList.remove('missing'); }, 1200);
+    });
+
+    document.getElementById('copy').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(token);
+        document.getElementById('copy').textContent = 'Copied';
+      } catch {
+        tokenInput.select();
+      }
+    });
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,141 @@
+#
+# Articals Logistics — single source of truth for dependency versions.
+#
+# Every version below was verified against the real registry on 2026-10-14:
+#   * Maven Central / Google Maven metadata (maven-metadata.xml)
+#   * GitHub release feeds
+#   * npm registry
+# See docs/ARCHITECTURE_DECISIONS.md (ADR-001) for the selection rationale and
+# docs/VERSIONS.md for the exact evidence (URL + version + date) per entry.
+#
+[versions]
+# ---------------------------------------------------------------------------
+# Build tooling
+# ---------------------------------------------------------------------------
+agp = "9.4.2"                     # latest stable; supports compileSdk 37, needs Gradle >= 9.6
+kotlin = "2.4.21"                 # latest stable Kotlin (2026-10-08)
+composeMultiplatform = "1.12.1"   # latest stable Compose Multiplatform (2026-09-22)
+googleServices = "4.5.0"          # com.google.gms:google-services
+firebaseCrashlyticsPlugin = "3.0.8"
+
+# ---------------------------------------------------------------------------
+# Android SDK levels (justified in docs/ARCHITECTURE_DECISIONS.md ADR-006)
+# ---------------------------------------------------------------------------
+androidCompileSdk = "37"          # AGP 9.4 supports up to API 37
+androidTargetSdk = "37"
+androidMinSdk = "26"              # Android 8.0 — rider devices in Nigeria are frequently older/cheap
+iosDeploymentTarget = "16.0"      # iOS 16 — supported by Firebase iOS SDK 13 and GitLive 2.7
+
+# ---------------------------------------------------------------------------
+# Android / Google
+# ---------------------------------------------------------------------------
+androidxActivityCompose = "1.13.0"
+androidxCoreKtx = "1.19.1"
+androidxAppcompat = "1.7.1"
+androidxComposeUiTest = "1.12.1"  # androidx.compose.ui:ui-test-* (matches CMP 1.12.1 base)
+androidxTestExtJunit = "1.3.0"
+playServicesMaps = "20.1.0"
+# Firebase Android BOM is pinned to the version the KMP wrapper (GitLive 2.7.0)
+# was built and tested against. Do not bump independently of the wrapper.
+firebaseBom = "34.18.0"
+
+# ---------------------------------------------------------------------------
+# Multiplatform libraries
+# ---------------------------------------------------------------------------
+kotlinxCoroutines = "1.11.0"
+kotlinxSerialization = "1.11.0"
+kotlinxDatetime = "0.8.0"
+ktor = "3.6.0"                    # network engine for Coil 3 (image loading only)
+koin = "4.2.2"
+coil = "3.6.3"
+multiplatformSettings = "1.3.0"
+jetbrainsLifecycle = "2.11.0"     # org.jetbrains.androidx.lifecycle (KMP viewmodel)
+jetbrainsNavigation = "2.9.2"     # org.jetbrains.androidx.navigation (KMP navigation-compose)
+turbine = "1.2.1"
+
+# Firebase Kotlin Multiplatform wrapper. 2.7.0 is the newest stable release;
+# 3.0.0-alpha0x exists but is not stable. It pins Firebase Android BOM 34.18.0
+# and Firebase iOS SDK 13.x, which is why firebaseBom above is not the newest.
+gitliveFirebase = "2.7.0"
+
+# ---------------------------------------------------------------------------
+# iOS (Swift Package Manager, declared in iosApp/project.yml + Xcode)
+# ---------------------------------------------------------------------------
+firebaseIosSdk = "13.0.1"
+googleMapsIosSdk = "11.2.0"
+
+# NOTE: Cloud Functions (TypeScript) dependency versions are intentionally NOT
+# listed here — functions/package.json is the single source of truth for that
+# side of the project. See docs/VERSIONS.md for the verified npm versions.
+
+[libraries]
+# --- Kotlin / JetBrains multiplatform -------------------------------------
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
+
+# --- AndroidX / lifecycle / navigation (KMP builds) -----------------------
+androidx-lifecycle-viewmodel-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "jetbrainsLifecycle" }
+androidx-lifecycle-runtime-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "jetbrainsLifecycle" }
+androidx-navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "jetbrainsNavigation" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidxActivityCompose" }
+androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCoreKtx" }
+
+# --- DI -------------------------------------------------------------------
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
+koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin" }
+koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
+koin-test = { module = "io.insert-koin:koin-test", version.ref = "koin" }
+
+# --- Images ---------------------------------------------------------------
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
+ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
+ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
+
+# --- Preferences ----------------------------------------------------------
+multiplatform-settings = { module = "com.russhwolf:multiplatform-settings", version.ref = "multiplatformSettings" }
+multiplatform-settings-no-arg = { module = "com.russhwolf:multiplatform-settings-no-arg", version.ref = "multiplatformSettings" }
+multiplatform-settings-test = { module = "com.russhwolf:multiplatform-settings-test", version.ref = "multiplatformSettings" }
+
+# --- Firebase Kotlin Multiplatform (GitLive) ------------------------------
+firebase-kmp-common = { module = "dev.gitlive:firebase-common", version.ref = "gitliveFirebase" }
+firebase-kmp-auth = { module = "dev.gitlive:firebase-auth", version.ref = "gitliveFirebase" }
+firebase-kmp-firestore = { module = "dev.gitlive:firebase-firestore", version.ref = "gitliveFirebase" }
+firebase-kmp-functions = { module = "dev.gitlive:firebase-functions", version.ref = "gitliveFirebase" }
+firebase-kmp-storage = { module = "dev.gitlive:firebase-storage", version.ref = "gitliveFirebase" }
+firebase-kmp-crashlytics = { module = "dev.gitlive:firebase-crashlytics", version.ref = "gitliveFirebase" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-android-appcheck-playintegrity = { module = "com.google.firebase:firebase-appcheck-playintegrity" }
+firebase-android-appcheck-debug = { module = "com.google.firebase:firebase-appcheck-debug" }
+firebase-android-messaging = { module = "com.google.firebase:firebase-messaging" }
+firebase-android-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
+
+# --- Android application entry point (:androidApp) ------------------------
+firebase-bom-app = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidxAppcompat" }
+
+# --- Google Play services (Android-only platform code) --------------------
+play-services-maps = { module = "com.google.android.gms:play-services-maps", version.ref = "playServicesMaps" }
+
+# --- Test -----------------------------------------------------------------
+androidx-test-ext-junit = { module = "androidx.test.ext:junit", version.ref = "androidxTestExtJunit" }
+androidx-compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4", version.ref = "androidxComposeUiTest" }
+androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "androidxComposeUiTest" }
+
+[plugins]
+# AGP 9 does not permit `com.android.application` in a Kotlin Multiplatform module,
+# so the Android library target of :composeApp uses the purpose-built KMP plugin and
+# the application entry point lives in :androidApp (ADR-012).
+androidApplication = { id = "com.android.application", version.ref = "agp" }
+androidKmpLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
+googleServices = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+firebaseCrashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlyticsPlugin" }
