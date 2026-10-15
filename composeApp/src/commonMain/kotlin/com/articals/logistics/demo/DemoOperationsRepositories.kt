@@ -3,6 +3,7 @@ package com.articals.logistics.demo
 import com.articals.logistics.core.AppError
 import com.articals.logistics.core.AppResult
 import com.articals.logistics.core.Permissions
+import com.articals.logistics.core.Roles
 import com.articals.logistics.core.businessDateKey
 import com.articals.logistics.core.currentTimeMillis
 import com.articals.logistics.core.isoInstant
@@ -518,7 +519,31 @@ class DemoStorageRepository(
 
     override suspend fun uploadProof(tenantId: String, orderId: String, payload: com.articals.logistics.data.UploadPayload): AppResult<String> =
         store.demoCall {
-            store.requireWrite(tenantId, Permissions.OrdersRecordProof)
+            val membership = store.requireWrite(tenantId, Permissions.OrdersRecordProof)
+
+            val order = store.orders.value[orderId]?.takeIf { it.tenantId == tenantId }
+                ?: throw DemoFailure(
+                    AppError.NotFound(detail = "order_missing", message = "That delivery was not found."),
+                )
+
+            // The storage rules allow an assigned rider, or the staff roles that record
+            // proof. Anything looser here would let the app be verified against a bucket
+            // that would refuse it in production.
+            val actingRiderId = store.riders.value.values.firstOrNull { it.userId == store.currentUid() }?.id
+            val allowed = when (membership.role) {
+                Roles.Rider -> order.assignedRiderId != null && order.assignedRiderId == actingRiderId
+                Roles.Owner, Roles.Manager, Roles.Dispatcher -> true
+                else -> false
+            }
+            if (!allowed) {
+                throw DemoFailure(
+                    AppError.PermissionDenied(
+                        detail = "order.not_assigned_to_rider",
+                        message = "You can only add proof of delivery for a delivery assigned to you.",
+                    ),
+                )
+            }
+
             validateProof(payload)?.let { throw DemoFailure(it) }
             val path = "proof/$tenantId/$orderId/${payload.fileName}"
             store.audit(
@@ -534,7 +559,6 @@ class DemoStorageRepository(
     override suspend fun uploadCompanyLogo(tenantId: String, payload: com.articals.logistics.data.UploadPayload): AppResult<String> =
         store.demoCall {
             store.requireWrite(tenantId, Permissions.CompanySettingsManage)
-            com.articals.logistics.data.api.StorageRepository::class
             validateProof(payload)?.let { throw DemoFailure(it) }
             // Demo mode has no bucket: the company keeps the download URL the picker
             // produced, which is enough for the branding screens to be verified.

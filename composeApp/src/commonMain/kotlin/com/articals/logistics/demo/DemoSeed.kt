@@ -477,6 +477,12 @@ object DemoSeed {
                 val contactName = contactNames[random.nextInt(contactNames.size)]
 
                 val manualDistance = dayOffset == 4 && indexInDay == 1
+                // One delivery was booked while the rider's pay for that route was still
+                // being agreed: the customer price is on the order, the rider's cost is
+                // not confirmed, and the warning saying so was acknowledged to get the
+                // delivery out. This is the second thing the "needs attention" list is
+                // for, and the reason its review warning exists at all.
+                val riderCostUnconfirmed = dayOffset == 7 && indexInDay == 1
                 val pickup = QuoteLocationDto(
                     address = pickupAddress,
                     zoneId = fromZone,
@@ -551,12 +557,15 @@ object DemoSeed {
 
                 // Actuals: what really happened. A fifth of them came in worse than
                 // the estimate, which is what the underperformance report looks for.
+                // The chance is rolled for every delivered delivery so that the seed's
+                // random stream does not shift; the unconfirmed one simply stays open.
                 val recordActuals = status == OrderStatus.Delivered && random.chance(88)
+                val finalAmounts = recordActuals && !riderCostUnconfirmed
                 var actualRiderCost: Long? = null
                 var actualCharge: Long? = null
                 var actualAdditional: Long? = null
                 var actualProfit: Long? = null
-                if (recordActuals) {
+                if (finalAmounts) {
                     actualRiderCost = when {
                         random.chance(18) -> quote.estimatedRiderCost.amountMinor + 30_000
                         random.chance(25) -> quote.estimatedRiderCost.amountMinor + 15_000
@@ -589,11 +598,16 @@ object DemoSeed {
                     assignedRiderId = rider?.id,
                     riderSnapshot = rider?.let { RiderSnapshotDto(it.name, it.phone, it.id) },
                     distance = quote.distance,
-                    pricingSnapshot = quote.pricingSnapshot.copy(capturedAt = isoInstant(createdAt)),
+                    pricingSnapshot = quote.pricingSnapshot.copy(
+                        capturedAt = isoInstant(createdAt),
+                        // Pinned to the version that was live when it was booked: the
+                        // current card is version 3, and that one averaged rider pay.
+                        pricingConfigVersion = if (riderCostUnconfirmed) 2 else quote.pricingSnapshot.pricingConfigVersion,
+                    ),
                     customerChargeMinor = charge,
                     estimatedCustomerChargeMinor = quote.computedCustomerChargeMinor,
                     estimatedRiderCostMinor = quote.estimatedRiderCost.amountMinor,
-                    riderCostConfidence = quote.estimatedRiderCost.confidence,
+                    riderCostConfidence = if (riderCostUnconfirmed) "unconfirmed" else quote.estimatedRiderCost.confidence,
                     estimatedAdditionalCostsMinor = quote.estimatedAdditionalDeliveryCostsMinor,
                     estimatedProfitMinor = estimatedProfit,
                     estimatedMarginBps = quote.estimatedMarginBps,
@@ -601,9 +615,12 @@ object DemoSeed {
                     actualAdditionalCostsMinor = actualAdditional,
                     actualCustomerChargeMinor = actualCharge,
                     actualProfitMinor = actualProfit,
-                    actualsRecordedAt = if (recordActuals) isoInstant(createdAt + 5 * 3_600_000L) else null,
+                    actualsRecordedAt = if (finalAmounts) isoInstant(createdAt + 5 * 3_600_000L) else null,
                     additionalCosts = additionalCosts,
-                    acknowledgedWarnings = if (manualDistance) listOf("manual_distance") else emptyList(),
+                    acknowledgedWarnings = buildList {
+                        if (manualDistance) add("manual_distance")
+                        if (riderCostUnconfirmed) add("rider_cost_unconfirmed")
+                    },
                     internalNotes = if (manualDistance) "Distance entered by hand while the provider was down." else null,
                     scheduledAt = if (serviceLevel == ServiceLevel.Scheduled) isoInstant(createdAt + 2 * 3_600_000L) else null,
                     currency = "NGN",

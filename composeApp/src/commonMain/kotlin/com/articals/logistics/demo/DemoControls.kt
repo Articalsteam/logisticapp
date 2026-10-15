@@ -64,8 +64,15 @@ class DemoControls(
     override fun reset() {
         commands?.reset()
         mutableState.update {
-            it.copy(emptyCompanyLoaded = false, forcedError = null, network = DemoNetworkMode.NORMAL,
-                dataVersion = it.dataVersion + 1)
+            it.copy(
+                emptyCompanyLoaded = false,
+                forcedError = null,
+                network = DemoNetworkMode.NORMAL,
+                // The store drops its entitlement override too, so leaving this behind
+                // would show a state chip for a company that no longer has it.
+                entitlementOverride = null,
+                dataVersion = it.dataVersion + 1,
+            )
         }
     }
 

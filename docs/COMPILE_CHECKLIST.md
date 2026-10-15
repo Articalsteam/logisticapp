@@ -14,19 +14,35 @@ commands in §4 have been run on a machine with the Android SDK and Xcode.
 
 | Check | Command | Result |
 | --- | --- | --- |
-| Backend unit tests | `cd functions && npm install --no-audit --no-fund && npx vitest run --project unit` | 163/163 passing, 7 files (last run before the last client batch) |
-| Named arguments against every `class` in the tree | `python3 tools/check_dto_args.py composeApp/src/commonMain/kotlin/com/articals/logistics` | 1 185 named arguments across 98 files, **0 problems** |
-| Member access on the demo objects | `python3 tools/check_member_calls.py composeApp/src/commonMain/kotlin/com/articals/logistics store=DemoStore controls=DemoControls simulator=DemoQuoteSimulator` | 1 595 accesses, **0 problems** |
-| Imports resolve inside the tree | `python3 tools/check_imports.py composeApp/src/commonMain/kotlin/com/articals/logistics` | 845 imports across 98 files, **0 problems** |
-| Named arguments against our own functions | `python3 tools/check_named_args.py composeApp/src` | 642 named arguments across 107 files, **0 problems** |
-| Every file is structurally closed | brace/parenthesis balance over all `.kt` files (inline script, see §3) | 107 files, all balanced |
+| Backend unit tests | `cd functions && npm install --no-audit --no-fund && npx vitest run --project unit` | 163/163 passing, 7 files (last run before the P3 client batch) |
+| Named arguments against every `class` in the tree | `python3 tools/check_dto_args.py composeApp/src` | 1 734 named arguments across 141 files, **0 problems** |
+| Member access on the demo objects | `python3 tools/check_member_calls.py composeApp/src store=DemoStore controls=DemoControls simulator=DemoQuoteSimulator world=DemoWorld` | 3 387 accesses, **2 problems — both false positives**, see below |
+| Imports resolve inside the tree | `python3 tools/check_imports.py composeApp/src` | 1 345 imports across 141 files, **0 problems** |
+| Named arguments against our own functions | `python3 tools/check_named_args.py composeApp/src` | 1 658 named arguments across 141 files, **0 problems** |
+| Every file is structurally closed | `python3 tools/check_balance.py .` | 143 `.kt` files, **0 problems** |
 | Rules tests | `cd functions && npm run test:rules` (Firestore emulator) | **Not run here** — the emulator JAR is not downloadable from this sandbox. Owner's machine only. |
 
-The four checkers are structural, not a type checker. Between them they catch: a named
+The five checkers are structural, not a type checker. Between them they catch: a named
 argument a class or function does not declare, a member that does not exist, an import
 that names something that is not there, and an unbalanced file. They cannot catch a
 type mismatch, a wrong overload, a bad operator, or anything about an external library
 — that is what §4 is for.
+
+Two standing false positives, kept rather than silenced because silencing them would
+hide a real one if it ever appeared:
+
+* `check_member_calls.py` reports `Settings.ACTION_APP_NOTIFICATION_SETTINGS` and
+  `Settings.EXTRA_APP_PACKAGE` in `androidMain/…/Platform.android.kt`. Those are
+  `android.provider.Settings`, not this app's `Settings` string object; the static pass
+  cannot tell two same-named types apart across modules.
+* `check_balance.py` counts Kotlin, not Kotlin-in-a-string: a brace inside a plain string
+  literal is ignored, which is correct, and a `${...}` template is parsed as code.
+
+**`check_balance.py` itself was broken and is fixed.** The first version emitted the
+closing brace of every `${...}` template without its opening one, and reported 359
+"problems" in files that were fine. It was checked against three deliberately broken
+files afterwards (a missing `}`, a `)` where a `}` belonged, and a file whose braces live
+inside strings and templates) and it now catches the first two and passes the third.
 
 ### Defects the checkers found (all fixed in this branch)
 
@@ -59,10 +75,38 @@ type mismatch, a wrong overload, a bad operator, or anything about an external l
   writing the shell; a bad patch had renamed the `Settings` string object to
   `Notifications`, which `check_member_calls.py` caught on the next run (341 → 34 → 0
   problems). This is the clearest argument for running the checkers after every batch.
+* **`tools/check_member_calls.py` did not parse at all** — the docstring added in the
+  previous batch ended with two quotes instead of three, so the whole tool was a syntax
+  error and every run after that commit failed. Fixed; the numbers above are from the
+  fixed tool. A checker that cannot run is worse than no checker, because its silence
+  looks like a pass.
+* **A rider could move a colleague's delivery.** `DemoOrdersRepository.updateStatus`
+  decided the transition table by permission alone, and the rider role *has*
+  `orders.update_status`, so a rider acting on a delivery that was not assigned to them
+  fell through to the staff workflow and was allowed. The backend refuses this with
+  `order.not_assigned_to_rider` (`functions/src/functions/orderLifecycle.ts:285`). The
+  demo now refuses it with the same code, and `DemoOrdersContractTest` asserts both the
+  refusal and the assigned rider's success.
+* **Proof of delivery had no ownership check either.** `DemoStorageRepository.uploadProof`
+  checked the permission but not the delivery, while the storage rules allow only an
+  assigned rider or the staff roles that record proof
+  (`storage.rules`, `tenants/{tenantId}/proof/{orderId}`). The demo now mirrors the rule.
+* **The seeded world had no delivery with an unconfirmed rider cost**, although the
+  walkthrough points at the "needs attention" list for exactly that case and
+  `DashboardViewModel`/`OrdersViewModel` both look for `riderCostConfidence ==
+  "unconfirmed"`. One seeded delivery now carries it, with the acknowledged
+  `rider_cost_unconfirmed` warning that accepting such a delivery requires and without
+  final amounts, so it stays open. The random stream is unchanged: the chance is still
+  rolled for every delivered delivery.
+* `DemoControls.reset()` cleared the store's entitlement override but not the one in its
+  own `DiagnosticsState`, so the panel kept showing the state chip for a company that had
+  just been reset.
+* `DemoStorageRepository.uploadCompanyLogo` contained a stray `StorageRepository::class`
+  expression that did nothing; removed (it was on the housekeeping list).
 
 ## 2. Written but not compiled
 
-Everything under `composeApp/src/` — 107 Kotlin files:
+Everything under `composeApp/src/` — 132 Kotlin files, plus 9 test files:
 
 * `core/` — money, errors, results, permissions, `AppConfig`/`AppMode`, `UiState`,
   validation, time/date helpers.
@@ -72,33 +116,56 @@ Everything under `composeApp/src/` — 107 Kotlin files:
   `startArticalsLogistics`.
 * `domain/` — order status machine, entitlement states, permissions, the vocabulary
   mirrors.
-* `demo/` — the store, the seeded world (two companies, ~60 deliveries, 6 riders, 15
+* `demo/` — the store, the seeded world (two companies, 60 deliveries, 6 riders, 15
   customers), the quote simulator, the thirteen `Demo*Repository` implementations, the
   control panel, the assets.
-* `ui/` — theme, components, strings, the shell and these screens:
+* `ui/` — theme, components, strings, the shell and every screen of P1, P2 and P3:
   * session: splash, not-configured, sign-in (with one-tap demo accounts), register,
     reset password, verify email;
   * workspace: no-company setup, workspace chooser, the four-step onboarding wizard;
   * working day: dashboard, delivery list (search/filter/sort/paging), delivery detail
     (assignment, status changes, final amounts, tracking message), settings hub,
     notifications;
+  * pricing: the calculator (full breakdown, rider-cost and price overrides, warnings,
+    save quote), quote history, create a delivery from a quote;
+  * records: customers, riders, expenses, pricing settings (four methods, bands, zones,
+    surcharges, rounding, rider-cost methods, versioning), reports and CSV export,
+    company settings, staff and permissions, subscription status, customer tracking
+    lookup;
   * rider: my deliveries, one job with the rider's own steps, proof upload, report a
-    problem.
-* `androidMain` / `iosMain` — platform actuals and the two platform bridges. The
-  Android entry point (`androidApp/`) and the iOS Swift host (`iosApp/`) are still to be
-  written, so the app cannot be launched even once it compiles.
+    problem;
+  * the platform console: overview, company list and detail, offline payments, bypass
+    grants, the ledger, platform settings, the audit log.
+* `commonTest` — 88 tests in 9 files (§2.1 below).
+* `androidMain` / `iosMain` — platform actuals and the two platform bridges.
+  `androidApp/` (the entry point) is written; `iosApp/` is not built yet, so the app
+  cannot be launched even once it compiles.
 
 Written but not compiled on the build side: `androidApp/build.gradle.kts`
 (`articals.mode`, the company/admin flavours and the demo-release guard),
 `composeApp/build.gradle.kts`, `gradle/libs.versions.toml`.
 
-**Not written yet** (in the order they will be built): the price calculator and the
-variants/create-delivery flow it feeds, quotes history, customers, riders, expenses,
-pricing settings, reports and CSV export, company settings, staff and permissions,
-subscription screen, customer tracking lookup, WhatsApp share sheet polish, and the
-whole platform console (company list/detail, offline payments, bypasses, ledger,
-overview, settings, audit log). The tab bar and the settings menu deliberately show
-only destinations that exist: nothing in the app offers a button that leads nowhere.
+## 2.1 The tests — written, never run
+
+`composeApp/src/commonTest/kotlin/com/articals/logistics/` — 88 `@Test` functions. They
+are Kotlin tests over the demo data layer; nothing here touches Firebase, and every test
+builds its own demo world with **zero latency** (`DemoWorld`), so none of them sleeps and
+none of them shares state with another.
+
+| File | What it pins |
+| --- | --- |
+| `demo/DemoWorld.kt` | The fixture: controls, store, seed, the thirteen repositories, the simulator. |
+| `demo/DemoWorldTest.kt` | The claims demo mode makes: seven accounts sign in and land in the advertised role; a wrong password starts no session; a rider sees only their own deliveries and the two riders' lists are disjoint; a query for one company never returns the other's rows; a dispatcher's dashboard has no `financials` while the owner's does; only the admin account carries the platform claim; the seed is deterministic. |
+| `demo/DemoQuoteSimulatorTest.kt` | The canonical pricing example (₦700 + ₦150/km + ₦500 rider = ₦1 960 / profit ₦1 460 / 7 449 bps), the band method, the catch-all band, `needs_input` instead of an invented distance, the manual-distance warning, minimum and maximum, rounding once at the end, extra costs as costs, duplicate extras, the pricing snapshot, and that the lines add up to the line total. |
+| `demo/DemoOrdersContractTest.kt` | Create (priced, visible, pending), idempotency by key, role gating, assignment, illegal transitions, the returned allowed-next list, final amounts only after the delivery is closed, variance, rider ownership (`order.not_assigned_to_rider`) both ways, cross-company refusal, proof-of-delivery ownership and the file rules, the permission matrix around `orders.record_actuals`. |
+| `demo/DemoRepositoriesContractTest.kt` | Customers (add, archive, still listed after archiving), riders (a rider record is not an account; the invitation is a separate step), expenses (company dates, deletion with a reason, a delivery expense needs a delivery), pricing (saving rates makes a new version and leaves the old one alone; a saved quote appears in history), company settings, staff invitations and the refusal a dispatcher gets, changing a role being audited, console payments and ledger, a company owner refused the console, the console's own actions audited, tracking working for a real reference and failing for an invented one. |
+| `demo/DemoControlsTest.kt` | The control panel as the error lab: zero latency is instant, slow triples the wait, offline fails everything with `AppError.Offline`, a forced error is spent on exactly one call, flaky is deterministic for a seed and never invents another error, latency and font scale are clamped, all seven entitlement states, a limited workspace that reads but refuses writes (`entitlement_limited`), a suspended one says so, the empty company, reset, and that the seeded deliveries really do cover the states the walkthrough points at. |
+| `core/MoneyAndTimeTest.kt` | Money as whole minor units both ways, negatives kept, nonsense refused, percentages to basis points, the business date in the company's time zone rather than the phone's, date-key arithmetic and boundaries, and the distance parser's limits. |
+| `data/DtoContractTest.kt` | The callable envelope, a response with optional fields omitted, money as numbers of minor units on the wire (and a rate card that survives a round trip), an unknown pricing method carried as a string, a quote round-tripping with its lines, rounding and snapshot, and the vocabulary lists the interface switches on. |
+| `ui/nav/RoutesTest.kt` | Who can open what: a rider reaches only the rider routes, staff reach the company app and not the rider app, no signed-in role is nobody, the console needs the platform claim, patterns and built routes agree, and an unknown route is closed. |
+
+**Two of these tests found real defects while being written** — the rider-ownership hole
+and the missing unconfirmed-rider-cost seed case, both listed under §1.
 
 ## 3. Known traps for the first build
 
@@ -165,13 +232,15 @@ Record the outcome of each line here as it is run.
 
 ## 5. Still to write
 
-* **Screens** — the remaining P1 (calculator, create delivery from a quote, quote
-  history), P2 (customers, riders, expenses, pricing settings, tracking lookup) and P3
-  (reports/CSV, staff and permissions, company settings, subscription, the platform
-  console) screens, each added to `ui/nav/ArticalsNavigation.kt` as it lands.
-* `commonTest`: repository contract tests against the demo implementations and the
-  `DemoQuoteSimulator` canonical vectors.
-* `androidApp/` entry point (Activity, `AppConfig` from `BuildConfig`, the demo-release
-  guard) and `iosApp/` (Swift host, `project.yml` for XcodeGen).
-* Documentation: `DEMO_WALKTHROUGH.md`, `DEMO_TO_FIREBASE.md`, `PILOT_RUNBOOK.md`,
-  `MX_RATE_CARD_WORKSHEET.md` (+ CSV).
+* `iosApp/` — the Swift host, `project.yml` for XcodeGen, `Config.xcconfig.example`
+  values wired into the framework, and the push/App Check notes.
+* The four documents in §7 of the spec: `DEMO_WALKTHROUGH.md`, `DEMO_TO_FIREBASE.md`,
+  `PILOT_RUNBOOK.md`, `MX_RATE_CARD_WORKSHEET.md` (+ CSV).
+* One ADR owed: the pricing vocabulary (`base_plus_distance | distance_bands |
+  zone_based | hybrid`, and "flat price" expressed as a single open-ended band).
+* Housekeeping: the duplicated `ui/demo/DemoActions.kt`; `SettingsScreen.kt` uses `2.dp`
+  without importing `dp`; bodies patched blind in `SupportLocator.kt`, `Startup.kt`,
+  `ArticalsApp.kt`, `UiModule.kt`, `SystemScreens.kt` still need a re-read against the
+  components they call.
+* The standing truth for §4: **none of the above is compiled.** The first person with an
+  Android SDK and a Mac owes this file the results.

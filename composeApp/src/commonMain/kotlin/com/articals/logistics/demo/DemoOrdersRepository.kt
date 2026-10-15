@@ -3,6 +3,7 @@ package com.articals.logistics.demo
 import com.articals.logistics.core.AppError
 import com.articals.logistics.core.AppResult
 import com.articals.logistics.core.Permissions
+import com.articals.logistics.core.Roles
 import com.articals.logistics.core.businessDateKey
 import com.articals.logistics.core.isoInstant
 import com.articals.logistics.domain.order.OrderStatus
@@ -480,21 +481,34 @@ class DemoOrdersRepository(
             val actor = store.requireUser()
             val order = loadOrder(request.tenantId, request.orderId)
 
-            val isAssignedRider = store.isAssignedRider(request.tenantId, order, actor.uid)
-            // A staff member needs orders.update_status; a rider needs to be the rider
-            // who owns this delivery. Being neither is a permission failure, not a
-            // status-machine failure — the distinction matters to the user.
+            val membership = store.requireMembership(request.tenantId)
+            val riderActing = membership.role == Roles.Rider
+            val isAssignedRider = riderActing && store.isAssignedRider(request.tenantId, order, actor.uid)
+
+            // A rider may only move the delivery that is assigned to them. The backend
+            // refuses this with the same code and the same message; without the check a
+            // rider could move a colleague's delivery, which is exactly the hole this
+            // demo exists to make visible.
+            if (riderActing && !isAssignedRider) {
+                throw DemoFailure(
+                    AppError.PermissionDenied(
+                        detail = "order.not_assigned_to_rider",
+                        message = "This delivery is not assigned to you, so you cannot update it.",
+                    ),
+                )
+            }
+
+            // A staff member needs orders.update_status; a rider acting on their own
+            // delivery needs it too, and either way the workspace must allow writes.
             if (isAssignedRider) {
-                // A rider acting on their own delivery still cannot act in a workspace
-                // whose subscription is limited or suspended.
                 store.requireWrite(request.tenantId, Permissions.OrdersViewAssigned)
             } else {
                 store.requireWrite(request.tenantId, Permissions.OrdersUpdateStatus)
             }
-            val canCorrect = !isAssignedRider && Permissions.OrdersCorrectStatus in Permissions.effective(
-                role = store.membershipFor(request.tenantId, actor.uid)?.role ?: "",
-                granted = store.membershipFor(request.tenantId, actor.uid)?.grantedPermissions.orEmpty(),
-                revoked = store.membershipFor(request.tenantId, actor.uid)?.revokedPermissions.orEmpty(),
+            val canCorrect = !riderActing && Permissions.OrdersCorrectStatus in Permissions.effective(
+                role = membership.role,
+                granted = membership.grantedPermissions,
+                revoked = membership.revokedPermissions,
             )
 
             val check = OrderStatus.canTransition(

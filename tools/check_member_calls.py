@@ -14,7 +14,7 @@ lowercase (`store`, `controls`, `simulator`). Passing an uppercase `object` ther
 the lookup through the class map and reports every one of its members as missing — that
 is a misuse of this tool, not a defect in the source. Object members are checked
 automatically by the static pass (`OrderStatus.label`, `ArticalsStrings.Shell.title`).
-""'
+"""
 import re
 import sys
 from pathlib import Path
