@@ -94,6 +94,13 @@ workflows:
           # already there. It exists for a checkout that lost the binary files — and it
           # needs no Gradle and no JDK to do its job (tools/ci/ensure_gradle_wrapper.sh).
           bash tools/ci/ensure_gradle_wrapper.sh "$GRADLE_VERSION"
+      - name: Resolve the Gradle distribution
+        script: |
+          # Downloads gradle-$GRADLE_VERSION from services.gradle.org on the first run and
+          # prints Gradle, JVM and OS versions. Kept as its own step so that "the wrapper
+          # cannot fetch its distribution" is one unambiguous line in the log rather than
+          # a stack trace buried in a compilation step.
+          ./gradlew --version
       - name: Compile the shared Kotlin (fast pass, before the iOS toolchain)
         script: |
           # Metadata compilation of commonMain: the quickest way to see unresolved

@@ -22,8 +22,9 @@ commands in §4 have been run on a machine with the Android SDK and Xcode.
 | Every file is structurally closed | `python3 tools/check_balance.py .` | 143 `.kt` files, **0 problems** |
 | Rules tests | `cd functions && npm run test:rules` (Firestore emulator) | **Not run here** — the emulator JAR is not downloadable from this sandbox. Owner's machine only. |
 | Codemagic workflows | `codemagic.yaml` (three workflows) | **Written, never run.** The first push runs `android-checks`, which is the first time this code meets a Kotlin compiler. See §7.1 of `docs/SETUP.md`. |
-| Gradle wrapper restore | `rm -f gradlew gradlew.bat gradle/wrapper/* && bash tools/ci/ensure_gradle_wrapper.sh 9.6.0` | **Run.** Downloads the wrapper from `gradle/gradle@v9.6.0`, validates the jar's manifest, writes the properties, and reports the pin. A second run is a no-op. The wrapper itself has never been executed (no JDK here). |
-| Wrapper bootstrap under Gradle 8.14.1 (the old approach) | a stub of 8.14.1's behaviour | **Failed on Codemagic**, twice, and is gone. See trap 11. |
+| Gradle wrapper restore | `rm -f gradlew gradlew.bat gradle/wrapper/* && bash tools/ci/ensure_gradle_wrapper.sh 9.6.0` | **Run.** Downloads the wrapper from `gradle/gradle@v9.6.0`, validates the jar's manifest, writes the properties, and reports the pin. A second run is a no-op. |
+| **The wrapper actually runs** | `JAVA_HOME=<jdk4py Temurin 25> ./gradlew --version` | **Run, and it works up to the network.** The jar loads, `org.gradle.wrapper.GradleWrapperMain` starts, the properties parse, the pinned URL `…/gradle-9.6.0-bin.zip` is resolved, and the `retries=3` / `retryBackOffMs=500` written into those properties are honoured (`Attempt 1/4 … 4/4`). The download itself fails with `SSLHandshakeException` because **this sandbox has no route to services.gradle.org** — so Gradle has still never run, and no dependency has ever been resolved. |
+| Wrapper bootstrap under Gradle 8.14.1 (the old approach) | a stub of 8.14.1's behaviour, then twice on Codemagic | **Failed on Codemagic**, twice, and is gone. See trap 11. |
 
 The five checkers are structural, not a type checker. Between them they catch: a named
 argument a class or function does not declare, a member that does not exist, an import
@@ -223,7 +224,28 @@ and the missing unconfirmed-rider-cost seed case, both listed under §1.
     fetched from `gradle/gradle@v9.6.0` — Gradle publishes its own wrapper files in its
     repository, so no Gradle and no JDK are needed to obtain them. `./gradlew` then
     downloads the 9.6.0 distribution itself on first use.
-    `tools/ci/ensure_gradle_wrapper.sh` only restores the files if they go missing
+    `tools/ci/ensure_gradle_wrapper.sh` only restores the files if they go missing.
+
+    Provenance of the committed wrapper, so it can be checked rather than trusted:
+
+    | File | sha256 |
+    | --- | --- |
+    | `gradle/wrapper/gradle-wrapper.jar` | `497c8c2a7e5031f6aa847f88104aa80a93532ec32ee17bdb8d1d2f67a194a9c7` |
+    | `gradlew` | `e01b5c97892572c82405c02b96a3382379100e7d825ce7c48883d95c26928750` |
+
+    Fetched from `https://api.github.com/repos/gradle/gradle/contents/gradle/wrapper/gradle-wrapper.jar?ref=v9.6.0`
+    (and the same for `gradlew`, `gradlew.bat`) at release tag `v9.6.0`, published
+    2026-06-19 and not a prerelease (`api.github.com/repos/gradle/gradle/releases/tags/v9.6.0`).
+    `gradle-wrapper.properties` is ours, not Gradle's: `gradle/wrapper/gradle-wrapper.properties`
+    at that tag points at the 9.6.0 **rc-3** distribution, which is not what this project
+    builds against.
+
+    `distributionSha256Sum` is deliberately **not** set: it would pin the distribution
+    archive's hash, and services.gradle.org — the only place that hash comes from — is
+    unreachable from the sandbox where these files were prepared. A guessed checksum
+    would fail every build. Add it on a machine that can download the archive
+    (`./gradlew --version` on the owner's machine, then the published `.sha256` file).
+
 
 ## 4. First real build — in this order
 
