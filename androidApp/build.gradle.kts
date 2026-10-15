@@ -146,6 +146,28 @@ android {
         buildConfigField("boolean", "ALLOW_DIAGNOSTICS", "$allowDiagnostics")
     }
 
+    // ---------------------------------------------------------------------------
+    // Release signing
+    //
+    // CI (codemagic.yaml) exports CM_KEYSTORE_PATH, CM_KEYSTORE_PASSWORD, CM_KEY_ALIAS
+    // and CM_KEY_PASSWORD from the keystore uploaded under "Code signing identities".
+    // When they are absent — every contributor's machine, a fresh clone, the demo
+    // workflows — nothing is registered and the release variant is built unsigned, so
+    // nobody is ever blocked by a keystore they do not have. The keystore itself is
+    // never committed (.gitignore covers *.keystore, *.jks and *.p12).
+    // ---------------------------------------------------------------------------
+    val ciKeystorePath = System.getenv("CM_KEYSTORE_PATH")?.takeIf { it.isNotBlank() }
+    signingConfigs {
+        if (ciKeystorePath != null) {
+            create("release") {
+                storeFile = file(ciKeystorePath)
+                storePassword = System.getenv("CM_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("CM_KEY_ALIAS")
+                keyPassword = System.getenv("CM_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -154,6 +176,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            // null locally: an unsigned release, exactly as before this was added.
+            signingConfig = signingConfigs.findByName("release")
         }
         debug {
             applicationIdSuffix = ".debug"

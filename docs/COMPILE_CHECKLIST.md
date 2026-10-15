@@ -21,6 +21,7 @@ commands in §4 have been run on a machine with the Android SDK and Xcode.
 | Named arguments against our own functions | `python3 tools/check_named_args.py composeApp/src` | 1 658 named arguments across 141 files, **0 problems** |
 | Every file is structurally closed | `python3 tools/check_balance.py .` | 143 `.kt` files, **0 problems** |
 | Rules tests | `cd functions && npm run test:rules` (Firestore emulator) | **Not run here** — the emulator JAR is not downloadable from this sandbox. Owner's machine only. |
+| Codemagic workflows | `codemagic.yaml` (three workflows) | **Written, never run.** The first push runs `android-checks`, which is the first time this code meets a Kotlin compiler. See §7.1 of `docs/SETUP.md`. |
 
 The five checkers are structural, not a type checker. Between them they catch: a named
 argument a class or function does not declare, a member that does not exist, an import
@@ -142,8 +143,23 @@ Everything under `composeApp/src/` — 132 Kotlin files, plus 9 test files:
   cannot be launched even once it compiles.
 
 Written but not compiled on the build side: `androidApp/build.gradle.kts`
-(`articals.mode`, the company/admin flavours and the demo-release guard),
-`composeApp/build.gradle.kts`, `gradle/libs.versions.toml`.
+(`articals.mode`, the company/admin flavours, the demo-release guard, and release
+signing that reads Codemagic's `CM_KEYSTORE_PATH` / `CM_KEYSTORE_PASSWORD` /
+`CM_KEY_ALIAS` / `CM_KEY_PASSWORD` when they are present — and builds an unsigned
+release, exactly as before, when they are not), `composeApp/build.gradle.kts`,
+`gradle/libs.versions.toml`, `codemagic.yaml` and `tools/ci/ensure_gradle_wrapper.sh`.
+
+**There is no Gradle wrapper in the repository.** `./gradlew` therefore does not exist on
+a fresh clone: the CI workflow generates it, and so must anybody building locally:
+
+```bash
+bash tools/ci/ensure_gradle_wrapper.sh 9.6.0
+```
+
+The script generates it with whatever Gradle is installed, in a scratch directory — it
+cannot be generated inside the checkout, because this build's settings apply AGP 9.4,
+which refuses to configure on Gradle 8.x (the version the CI images ship). It is
+idempotent, so committing the wrapper later retires it.
 
 ## 2.1 The tests — written, never run
 
@@ -228,7 +244,17 @@ PY
 ./gradlew :composeApp:allTests
 ```
 
-Record the outcome of each line here as it is run.
+On a repository with CI connected, the same four steps run as:
+
+```bash
+bash tools/ci/ensure_gradle_wrapper.sh 9.6.0   # the wrapper, once
+./gradlew :composeApp:allTests                  # workflow: android-checks (every push)
+./gradlew :androidApp:assembleCompanyDebug      # workflow: android-demo
+./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64   # needs macOS
+```
+
+Record the outcome of each line here as it is run. Until then, nothing in this
+repository has been compiled, and no test in `commonTest` has ever executed.
 
 ## 5. Still to write
 
@@ -242,5 +268,6 @@ Record the outcome of each line here as it is run.
   without importing `dp`; bodies patched blind in `SupportLocator.kt`, `Startup.kt`,
   `ArticalsApp.kt`, `UiModule.kt`, `SystemScreens.kt` still need a re-read against the
   components they call.
-* The standing truth for §4: **none of the above is compiled.** The first person with an
-  Android SDK and a Mac owes this file the results.
+* The standing truth for §4: **none of the above is compiled, and no test has run.** The
+  first person with an Android SDK and a Mac owes this file the results — and, with
+  Codemagic connected, `android-checks` produces them on the first push.

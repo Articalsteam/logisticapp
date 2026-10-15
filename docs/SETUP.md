@@ -137,6 +137,47 @@ scheme for the console.
 
 ---
 
+## 7.1 Continuous integration (Codemagic)
+
+`codemagic.yaml` at the repository root defines three workflows. In Codemagic, add the
+app with project type **Android** and project path **the repository root** — the build is
+Gradle from the root, not a Flutter/React Native/MAUI project.
+
+| Workflow | Trigger | What it does | Secrets |
+| --- | --- | --- | --- |
+| `android-checks` | every push | `./gradlew :composeApp:allTests` — compiles the shared module for Android and iOS and runs the 88 tests. This is the first thing that ever compiles this code. | none |
+| `android-demo` | manual | `assembleCompanyDebug` + `assembleAdminDebug` → two installable demo APKs (company app, platform console). | none |
+| `android-release` | manual | `assembleCompanyRelease` + `bundleCompanyRelease` in `-Particals.mode=firebase`, signed, with the Firebase configuration packaged in. | `articals_keystore`, `GOOGLE_SERVICES_JSON_BASE64` |
+
+Two secrets to create before `android-release` can run:
+
+1. **Android keystore** — Team settings → Code signing identities → Android keystores,
+   with the reference name `articals_keystore`. Codemagic then exports `CM_KEYSTORE_PATH`,
+   `CM_KEYSTORE_PASSWORD`, `CM_KEY_ALIAS` and `CM_KEY_PASSWORD`, which
+   `androidApp/build.gradle.kts` reads to sign the release variant. Without them a release
+   is built unsigned — locally, behaviour is unchanged.
+2. **`google-services.json`** — put it in an environment group named `firebase` as a
+   variable `GOOGLE_SERVICES_JSON_BASE64`:
+
+   ```bash
+   base64 < androidApp/google-services.json | tr -d '\n'
+   ```
+
+   The workflow refuses to run without it, rather than shipping an app that cannot sign
+   in (that is what a firebase-mode build without the file produces).
+
+**The Gradle wrapper is not committed.** `tools/ci/ensure_gradle_wrapper.sh` generates it
+during the build with whatever Gradle the machine has — the project's own settings need
+Gradle 9.6.0 (AGP 9.4's minimum), while the CI images preinstall 8.14.1, which cannot
+configure this build. Locally, run the same script once
+(`bash tools/ci/ensure_gradle_wrapper.sh 9.6.0`) to get `./gradlew`. Committing the
+wrapper later is fine; the script then does nothing.
+
+**iOS** gets its own workflow when `iosApp/` exists: it needs a macOS instance and the
+Xcode project that XcodeGen generates from `iosApp/project.yml`.
+
+---
+
 ## 8. Deploy
 
 ```bash
