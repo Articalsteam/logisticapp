@@ -247,6 +247,19 @@ and the missing unconfirmed-rider-cost seed case, both listed under §1.
     (`./gradlew --version` on the owner's machine, then the published `.sha256` file).
 
 
+12. **Codemagic rejects `max_build_duration: 180` before any step runs.** The validation
+    error reads `value 180 is out of expected bounds (1, 120)` — the field's ceiling is
+    120 minutes, and a rejected configuration means *nothing* runs, so it looks like a
+    build failure when it is a schema failure. All three workflows now sit at 120.
+    The pressure that made 180 look attractive is real: `:composeApp:allTests` compiles the
+    Kotlin/Native iOS targets, and a cold run downloads that toolchain (~1 GB) before the
+    first test executes. `$HOME/.konan` is cached, so only the first run pays. If a cold
+    run does approach the ceiling, split `:composeApp:iosSimulatorArm64Test` into its own
+    workflow instead of raising the number — two workflows, each comfortably inside the
+    cap, and the commonMain compile error arrives in minutes rather than after an hour of
+    toolchain download.
+
+
 ## 4. First real build — in this order
 
 ```bash

@@ -52,9 +52,13 @@ workflows:
   # ---------------------------------------------------------------------------
   android-checks:
     name: Android checks — compile and tests (demo mode)
-    # Generous: the first run downloads the Kotlin/Native toolchain for the iOS targets
-    # of the shared module. Later runs hit the $HOME/.konan cache.
-    max_build_duration: 180
+    # Codemagic's ceiling is 120 minutes (value 180 is rejected before any step runs:
+    # "out of expected bounds (1, 120)"). The first run still has to download the
+    # Kotlin/Native toolchain for the iOS targets of the shared module; $HOME/.konan is
+    # cached, so only that first run pays for it. If a cold run ever gets close to the
+    # ceiling, split :composeApp:iosSimulatorArm64Test into its own workflow rather than
+    # raising this number — see docs/COMPILE_CHECKLIST.md §3 trap 12.
+    max_build_duration: 120
     instance_type: mac_mini_m2
     environment:
       java: 17
