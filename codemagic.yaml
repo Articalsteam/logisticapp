@@ -52,7 +52,9 @@ workflows:
   # ---------------------------------------------------------------------------
   android-checks:
     name: Android checks — compile and tests (demo mode)
-    max_build_duration: 120
+    # Generous: the first run downloads the Kotlin/Native toolchain for the iOS targets
+    # of the shared module. Later runs hit the $HOME/.konan cache.
+    max_build_duration: 180
     instance_type: mac_mini_m2
     environment:
       java: 17
@@ -88,6 +90,12 @@ workflows:
             || echo "platforms;android-37 was not installed by sdkmanager; AGP will try to fetch it."
       - name: Bootstrap the Gradle wrapper
         script: bash tools/ci/ensure_gradle_wrapper.sh "$GRADLE_VERSION"
+      - name: Compile the shared Kotlin (fast pass, before the iOS toolchain)
+        script: |
+          # Metadata compilation of commonMain: the quickest way to see unresolved
+          # references and type errors in the shared code, without waiting for the
+          # Kotlin/Native toolchain that the tests below need.
+          ./gradlew --console=plain --stacktrace :composeApp:compileKotlinMetadata
       - name: Compile every target and run the tests
         script: |
           # `allTests` is Kotlin Multiplatform's aggregate: the Android host tests plus
@@ -96,7 +104,9 @@ workflows:
           # targets (~1 GB); $HOME/.konan is cached, so it is paid once. If the iosX64
           # test binary turns out to be awkward on Apple silicon, narrow this to
           # `:composeApp:iosSimulatorArm64Test :composeApp:testDebugUnitTest` and say so
-          # in docs/COMPILE_CHECKLIST.md.
+          # in docs/COMPILE_CHECKLIST.md. If a task name here is wrong, the log will say
+          # "Task ... not found"; `./gradlew :composeApp:tasks --all` lists the real ones
+          # (trap 8 in docs/COMPILE_CHECKLIST.md §3).
           ./gradlew --console=plain --stacktrace :composeApp:allTests
     artifacts:
       - composeApp/build/reports/tests/**

@@ -42,11 +42,26 @@ echo "Generating the Gradle wrapper for $version with $gradle_bin"
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 
+# Gradle 8.x refuses to run any task — including `wrapper` — in a directory that is not
+# a Gradle build ("Directory ... does not contain a Gradle build"), so the scratch
+# directory gets the smallest possible build first. It is not this project's build: the
+# settings here are deliberately empty, because applying the project's real settings in
+# this directory would drag in AGP and fail on Gradle 8.x, which is the whole reason the
+# generation happens outside the checkout.
+cat > "$scratch/settings.gradle.kts" <<'SETTINGS'
+rootProject.name = "wrapper-bootstrap"
+SETTINGS
+
 (
     cd "$scratch"
     "$gradle_bin" --no-daemon --console=plain \
         wrapper --gradle-version "$version" --distribution-type bin
 )
+
+if [ ! -f "$scratch/gradlew" ] || [ ! -f "$scratch/gradle/wrapper/gradle-wrapper.jar" ]; then
+    echo "Gradle finished but produced no wrapper in $scratch; nothing was copied." >&2
+    exit 1
+fi
 
 mkdir -p "$root/gradle/wrapper"
 cp "$scratch/gradle/wrapper/gradle-wrapper.jar" "$root/gradle/wrapper/gradle-wrapper.jar"
@@ -57,4 +72,11 @@ if [ -f "$scratch/gradlew.bat" ]; then
 fi
 chmod +x "$root/gradlew"
 
-echo "Wrapper ready: $root/gradlew (distribution $(grep -o 'gradle-[0-9.]*-bin.zip' "$root/gradle/wrapper/gradle-wrapper.properties" || echo '?'))"
+if ! grep -q "gradle-$version-" "$root/gradle/wrapper/gradle-wrapper.properties"; then
+    echo "The generated wrapper does not point at $version:" >&2
+    grep distributionUrl "$root/gradle/wrapper/gradle-wrapper.properties" >&2
+    exit 1
+fi
+
+echo "Wrapper ready: $root/gradlew"
+grep distributionUrl "$root/gradle/wrapper/gradle-wrapper.properties" | sed 's/^/  /'

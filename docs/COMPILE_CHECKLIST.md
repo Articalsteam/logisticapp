@@ -208,20 +208,21 @@ and the missing unconfirmed-rider-cost seed case, both listed under §1.
     KMP artefact). Route strings live in `ui/nav/Routes.kt`; the session decides the
     start destination, and `Routes.canOpen` is enforced inside the graph.
 
+11. **No Gradle wrapper, and Gradle 8.x cannot generate one in place.** The CI images
+    preinstall Gradle 8.14.1, which (a) refuses to configure this build — AGP 9.4 needs
+    Gradle 9.6.0 — and (b) refuses to run *any* task, including `wrapper`, in a directory
+    that is not a Gradle build. The first Codemagic run failed exactly there:
+    `Directory '/private/var/folders/…/tmp.4zT74yU1VX' does not contain a Gradle build`.
+    `tools/ci/ensure_gradle_wrapper.sh` now writes a one-line `settings.gradle.kts` into
+    its scratch directory first, which is the smallest thing that makes `gradle wrapper`
+    legal there, then verifies the generated properties point at 9.6.0 before copying.
+    Tested against a stub of Gradle 8.14.1's behaviour (success, failure-without-partial-
+    copy, wrong-version, and already-present).
+
 Balance check used in §1 (no compiler needed):
 
 ```bash
-python3 - <<'PY'
-from pathlib import Path
-from importlib.util import module_from_spec, spec_from_file_location
-spec = spec_from_file_location("chk", "tools/check_dto_args.py")
-chk = module_from_spec(spec); spec.loader.exec_module(chk)
-for path in sorted(Path("composeApp/src").rglob("*.kt")):
-    masked = chk.mask_comments(path.read_text())
-    for o, c in (("{", "}"), ("(", ")")):
-        assert masked.count(o) == masked.count(c), f"{path}: {o}{c} unbalanced"
-print("balanced")
-PY
+python3 tools/check_balance.py .
 ```
 
 ## 4. First real build — in this order
