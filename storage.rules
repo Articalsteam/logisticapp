@@ -1,0 +1,123 @@
+rules_version = '2';
+
+// =============================================================================
+// Articals Logistics — Cloud Storage rules
+//
+// Layout:
+//   public/…                                   marketing assets (world readable)
+//   tenants/{tenantId}/logo/{file}             company logo (public: shown on the
+//                                              tracking page)
+//   tenants/{tenantId}/reports/{file}          generated CSV exports (private)
+//   tenants/{tenantId}/proof/{orderId}/{file}  proof of delivery (private)
+//   tenants/{tenantId}/billing/{file}          offline-payment evidence (admin only)
+//
+// All uploads are authorised here, because proof-of-delivery images are uploaded by
+// the app directly (with device-side compression) rather than through a function.
+// Size and content type are validated here as well as in the client.
+// =============================================================================
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function membership(tenantId) {
+      return firestore.get(/databases/(default)/documents/memberships/$(tenantId + '_' + request.auth.uid)).data;
+    }
+
+    function hasMembership(tenantId) {
+      return signedIn()
+        && firestore.exists(/databases/(default)/documents/memberships/$(tenantId + '_' + request.auth.uid));
+    }
+
+    function isMemberOf(tenantId) {
+      return hasMembership(tenantId) && membership(tenantId).status == 'active';
+    }
+
+    function roleIn(tenantId, allowed) {
+      return isMemberOf(tenantId) && membership(tenantId).role in allowed;
+    }
+
+    function isPlatformAdmin() {
+      return signedIn() && request.auth.token.platformAdmin == true;
+    }
+
+    function isImage() {
+      return request.resource != null
+        && request.resource.contentType.matches('image/(jpeg|png|webp|heic)');
+    }
+
+    function underSizeMb(megabytes) {
+      return request.resource != null && request.resource.size <= megabytes * 1024 * 1024;
+    }
+
+    // -------------------------------------------------------------------------
+    // Marketing assets
+    // -------------------------------------------------------------------------
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if false;   // deployed with the site, not uploaded from the app
+    }
+
+    // -------------------------------------------------------------------------
+    // Company logo — visible to anyone (it appears on the public tracking page),
+    // writable only by company owners and managers, images only, 2 MB cap.
+    // -------------------------------------------------------------------------
+    match /tenants/{tenantId}/logo/{fileName} {
+      allow read: if true;
+      allow write: if roleIn(tenantId, ['owner', 'manager'])
+        && isImage()
+        && underSizeMb(2);
+    }
+
+    // -------------------------------------------------------------------------
+    // Report exports — generated server-side; downloadable by staff who may export.
+    // -------------------------------------------------------------------------
+    match /tenants/{tenantId}/reports/{fileName} {
+      allow read: if roleIn(tenantId, ['owner', 'manager']) || isPlatformAdmin();
+      allow write: if false;   // written by the Admin SDK in exportCompanyReport
+    }
+
+    // -------------------------------------------------------------------------
+    // Proof of delivery — private. A rider may upload only for a delivery assigned
+    // to them; staff may read their company's evidence. Images only, 5 MB cap
+    // (the device compresses well below this before uploading).
+    // -------------------------------------------------------------------------
+    match /tenants/{tenantId}/proof/{orderId}/{fileName} {
+      allow read: if roleIn(tenantId, ['owner', 'manager', 'dispatcher']) || isPlatformAdmin();
+
+      allow create: if (
+        // Assigned rider
+        (
+          roleIn(tenantId, ['rider'])
+          && firestore.get(/databases/(default)/documents/orders/$(orderId)).data.assignedRiderId
+             == membership(tenantId).riderId
+        )
+        // Or staff who may record proof
+        || roleIn(tenantId, ['owner', 'manager', 'dispatcher'])
+      )
+      && isImage()
+      && underSizeMb(5);
+
+      // Evidence is never overwritten or deleted from a client: it is a record.
+      allow update, delete: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // Offline-payment evidence — platform administrators only, PDF or image.
+    // -------------------------------------------------------------------------
+    match /tenants/{tenantId}/billing/{fileName} {
+      allow read: if isPlatformAdmin();
+      allow write: if isPlatformAdmin()
+        && underSizeMb(10)
+        && (request.resource.contentType.matches('image/.*') || request.resource.contentType == 'application/pdf');
+    }
+
+    // Everything else is denied.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Matches ArticalsTheme's light surface, so the window background does not
+         flash a different colour before Compose draws its first frame. -->
+    <color name="surface">#FFF8F7FA</color>
+    <color name="launcher_background">#0F5C46</color>
+</resources>

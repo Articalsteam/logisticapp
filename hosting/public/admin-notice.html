@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Articals Studio — platform console</title>
+<!--
+  /admin notice.
+
+  The platform console is not a web application: it is the same mobile app built in
+  its administrative flavour/scheme, reachable only by accounts carrying the
+  `platformAdmin` custom claim. This page exists so that /admin answers something
+  honest instead of a 404, and so that a new administrator knows what to install.
+  There is no login form here on purpose — credentials are never collected outside
+  the app (ADR-009).
+-->
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0; padding: 40px 18px; min-height: 100vh; display: grid; place-items: center;
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: #f6f7f8; color: #14181b;
+  }
+  @media (prefers-color-scheme: dark) { body { background: #14181b; color: #f2f4f5; } }
+  main { max-width: 520px; }
+  h1 { font-size: 1.35rem; margin: 0 0 12px; }
+  ol { padding-left: 20px; }
+  li { margin-bottom: 8px; }
+  code { background: rgba(127,127,127,.15); padding: 2px 6px; border-radius: 6px; }
+  footer { margin-top: 26px; color: #5c6b73; font-size: .88rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Articals Studio platform console</h1>
+  <p>The console runs inside the Articals Logistics app, not in a browser. It is
+    locked to accounts that carry the platform administrator claim, which the
+    backend grants from an allow-list — the app cannot grant it to itself.</p>
+
+  <ol>
+    <li>Install the administrative build: the Android <code>admin</code> flavour or the
+      iOS <code>ArticalsLogisticsAdmin</code> scheme.</li>
+    <li>Sign in with your Articals Studio address. It must be listed in the
+      <code>ARTICALS_BOOTSTRAP_ADMIN_EMAILS</code> environment variable of the deployed
+      functions before your first sign-in.</li>
+    <li>Open the <strong>Platform</strong> tab. If it is hidden, your account does not carry
+      the claim; ask another administrator to check the audit log.</li>
+  </ol>
+
+  <p>Recording an offline payment or granting a billing bypass always requires a
+    reason, and a bypass always has an expiry. Both are written to the ledger and
+    the audit log — nothing in this console is anonymous, and nothing here collects
+    card details.</p>
+
+  <footer>Articals Logistics — Articals Studio.</footer>
+</main>
+</body>
+</html>
