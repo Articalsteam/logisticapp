@@ -219,3 +219,80 @@ directories.
 
 **Ruled out.** A single module applying `com.android.application` (fails with AGP
 9), and moving shared code into the platform shells (which would double it).
+
+---
+
+## ADR-013 — Demo mode is a first-class data source, with one documented exception to ADR-002
+
+**Decision.** The app runs against one of two complete data sources, chosen by a
+single configuration value (`articals.mode=demo|firebase`, plus the presence of
+`google-services.json` / `GoogleService-Config.plist`):
+
+* **DEMO** — an in-memory store (`composeApp/.../demo/`) that implements the same
+  thirteen repository interfaces as the Firebase implementations. No Firebase
+  project, no network, no API keys, no configuration file. Every screen, every
+  state and every role can be exercised.
+* **FIREBASE** — the real backend. If the configuration file is missing the app
+  shows an honest "Firebase is not configured" screen pointing at `docs/SETUP.md`;
+  it never falls back to demo data.
+
+Screens and view models depend only on `data/api/*Repository.kt`; exactly one graph
+is installed at start-up (`di/Startup.kt`), so a Firebase build compiles without the
+demo package and a demo build never initialises Firebase.
+
+**The exception.** ADR-002 says no pricing arithmetic in Kotlin.
+`demo/DemoQuoteSimulator.kt` is the single, explicitly documented deviation: demo
+mode has no backend to call, so the simulator reimplements the pricing rules so that
+quotes, warnings, overrides and order pricing behave like production. It is written
+to the same contract as the engine (`docs/contracts/pricing.contract.json`), its
+outputs are checked against the same canonical vectors as the TypeScript engine in
+`commonTest`, and it is only reachable from the demo graph. In FIREBASE mode the
+only quoter is `calculateDeliveryQuote` on the server.
+
+**Why.** A prototype with fake buttons proves nothing, and a demo that needs a
+Firebase project before it will open cannot be given to a prospective customer. The
+demo store also mirrors the backend's refusals (permissions, entitlement, status
+machine, tenant boundaries), so the interface is verified against the behaviour the
+real system has rather than a permissive imitation of it.
+
+**Ruled out.** A second, separately-written UI for demos; a demo build that talks to
+a real Firebase project; a build that silently degrades from Firebase to demo data;
+pricing arithmetic anywhere else in Kotlin.
+
+---
+
+## ADR-014 — The admin console, the audit log and the ledger
+
+**Decision.** The platform administration console is compiled into the `admin`
+Android flavour only (`ADMIN_CONSOLE=false` in `company`), and every administrative
+call requires the `platformAdmin` claim on the server. Two surfaces are handled
+differently on purpose:
+
+* **Company list, overview, offline payments, bypasses, subscription management and
+  platform settings** go through callables (`listCompanies`, `getPlatformOverview`,
+  `recordOfflinePayment`, `setBillingBypass`, `revokeBillingBypass`,
+  `manageSubscription`, `updatePlatformSettings`).
+* **The audit log and the ledger are not client-readable at all**
+  (`firestore.rules` denies `auditLogs`, `ledger`, `subscriptions/*/private`,
+  `invitations`, `idempotencyKeys`, `counters`, `rateLimits`,
+  `notificationOutbox`). In demo mode the console shows them because the demo store
+  *is* the server; in FIREBASE mode `PlatformAdminRepository.auditLog` and `.ledger`
+  return `AppError.Unsupported`, and the console says so instead of showing an empty
+  list that would read as "nothing ever happened".
+
+**Why.** An audit trail that the audited party can query is not an audit trail, and
+a ledger that a modified client can read is a privacy problem. The pilot's
+administrators read those records through the Firebase console or `firebase-tools`
+(see `docs/PILOT_RUNBOOK.md`); giving the app a read path would mean granting
+`platformAdmin` holders a broad Firestore read, which the rules deliberately deny.
+Every offline payment, bypass and subscription change is therefore made through an
+audited callable that writes the ledger entry and the audit entry server-side in the
+same transaction as the change.
+
+**Ruled out.** A client-side query for `auditLogs`/`ledger`; an empty list standing
+in for "denied"; administrative writes from the app that bypass a callable.
+
+**Consequence to be aware of.** The console is complete in demo mode and complete
+for everything that changes state in FIREBASE mode, but its two read-only history
+panels are explicitly shown as unavailable in FIREBASE mode until a dedicated
+administrative report callable is added.
