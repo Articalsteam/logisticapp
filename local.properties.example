@@ -1,0 +1,15 @@
+# Copy this file to `local.properties` (which is git-ignored) and fill in the paths
+# for YOUR machine. Nothing here is a secret; these are absolute paths that differ
+# per developer and therefore do not belong in version control.
+#
+# Android Studio normally writes the sdk.dir line for you on first sync.
+
+# macOS (Android Studio default)
+# sdk.dir=/Users/you/Library/Android/sdk
+# Linux
+# sdk.dir=/home/you/Android/Sdk
+# Windows — escape the backslashes
+# sdk.dir=C\:\\Users\\you\\AppData\\Local\\Android\\Sdk
+
+# Optional: use a different JDK than the one running Gradle.
+# org.gradle.java.home=/path/to/jdk-17
